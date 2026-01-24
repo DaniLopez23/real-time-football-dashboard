@@ -24,3 +24,6 @@ logs/
 # Python
 *.egg-info/
 *.egg
+
+# Data files
+data/
