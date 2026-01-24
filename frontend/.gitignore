@@ -1,0 +1,23 @@
+# Node modules
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+logs/
+*.log
+
+# Environment variables
+.env
+
+# Vite cache
+.vite/
+
+# IDEs
+.vscode/
+.idea/
+
+# pnpm
+.pnpm-debug.log
+.pnpm-lock.yaml
