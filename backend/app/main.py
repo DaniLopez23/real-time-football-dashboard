@@ -2,6 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
+import uvicorn
+from app.core.logging import setup_logging
+from app.routes import index, events
+
+setup_logging()
 
 load_dotenv()
 
@@ -26,14 +31,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def root():
-    return {"message": "Welcome to Real-Time Football Dashboard API"}
+app.include_router(
+    index.app,
+    prefix="",
+    tags=["Index"]
+)
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
+app.include_router(
+    events.app,
+    prefix="",
+    tags=["Events"]
+)
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
