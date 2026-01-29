@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 import uvicorn
 from app.core.logging import setup_logging
-from app.routes import index, events
+from app.routes import index, events, games
 
 setup_logging()
 
@@ -42,6 +42,13 @@ app.include_router(
     prefix="",
     tags=["Events"]
 )
+
+app.include_router(
+    games.app,
+    prefix="",
+    tags=["Games"]
+)
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

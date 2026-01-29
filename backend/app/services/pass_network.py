@@ -9,7 +9,9 @@ Construye un grafo de redes de pases a partir de eventos de fútbol.
 from typing import Any, Dict, List, Set, Tuple
 from dataclasses import dataclass, field
 from collections import defaultdict
+import logging
 
+logger = logging.getLogger(__name__)
 
 @dataclass
 class Player:
@@ -19,7 +21,14 @@ class Player:
     player_name: str = ""
     team_id: str = ""
     pass_count: int = 0  # Número total de pases que hace este jugador
-    
+    passes_given: int = 0  # Número de pases dados
+    passes_received: int = 0  # Número de pases recibidos
+    avg_x_given: float = 0.0  # Posición media en X cuando da pases
+    avg_y_given: float = 0.0  # Posición media en Y cuando da pases
+    avg_x_received: float = 0.0  # Posición media en X cuando recibe pases
+    avg_y_received: float = 0.0  # Posición media en Y cuando recibe pases
+    avg_x_total: float = 0.0  # Posición media en X total
+    avg_y_total: float = 0.0  # Posición media en Y total
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -27,6 +36,20 @@ class Player:
             "player_name": self.player_name,
             "team_id": self.team_id,
             "pass_count": self.pass_count,
+            "passes_given": self.passes_given,
+            "passes_received": self.passes_received,
+            "avg_position_given": {
+                "x": round(self.avg_x_given, 2),
+                "y": round(self.avg_y_given, 2),
+            },
+            "avg_position_received": {
+                "x": round(self.avg_x_received, 2),
+                "y": round(self.avg_y_received, 2),
+            },
+            "avg_position_total": {
+                "x": round(self.avg_x_total, 2),
+                "y": round(self.avg_y_total, 2),
+            },
         }
 
 
@@ -37,12 +60,18 @@ class PassEdge:
     from_player_id: str
     to_player_id: str
     pass_count: int = 0  # Número de pases de from_player a to_player
+    avg_x: float = 0.0  # Posición media en X del que da el pase
+    avg_y: float = 0.0  # Posición media en Y del que da el pase
     
     def to_dict(self) -> Dict[str, Any]:
         return {
             "from_player_id": self.from_player_id,
             "to_player_id": self.to_player_id,
             "pass_count": self.pass_count,
+            "avg_position": {
+                "x": round(self.avg_x, 2),
+                "y": round(self.avg_y, 2),
+            },
         }
 
 
@@ -59,34 +88,82 @@ class PassNetwork:
     
     players: Dict[str, Player] = field(default_factory=dict)
     edges: Dict[Tuple[str, str], PassEdge] = field(default_factory=dict)
-    team_id: str = ""
+    team_id: int = 0
     
-    def add_player(self, player_id: str, player_name: str = "", team_id: str = "") -> None:
+    def add_player(self, player_id: str, player_name: str = "", team_id: int = 0) -> None:
         """Añade un nodo (jugador) a la red."""
         if player_id not in self.players:
             self.players[player_id] = Player(player_id, player_name, team_id)
     
-    def add_pass(self, from_player_id: str, to_player_id: str) -> None:
+    def add_pass(self, from_player_id: str, to_player_id: str, x: float = 0.0, y: float = 0.0, end_x: float = 0.0, end_y: float = 0.0) -> None:
         """
         Añade una arista dirigida de un jugador a otro.
         
         Args:
             from_player_id: ID del jugador que hace el pase
             to_player_id: ID del jugador que recibe el pase
+            x: Posición en X donde se inicia el pase
+            y: Posición en Y donde se inicia el pase
+            end_x: Posición en X donde termina el pase (recepción)
+            end_y: Posición en Y donde termina el pase (recepción)
         """
         # Asegurar que ambos jugadores existen
         self.add_player(from_player_id)
         self.add_player(to_player_id)
         
-        # Incrementar el peso del nodo origen (pases realizados)
-        self.players[from_player_id].pass_count += 1
+        from_player = self.players[from_player_id]
+        to_player = self.players[to_player_id]
         
-        # Crear o actualizar la arista dirigida
+        # Actualizar pases dados y recibidos
+        from_player.passes_given += 1
+        to_player.passes_received += 1
+        
+        # Incrementar el peso del nodo origen (pases realizados)
+        from_player.pass_count += 1
+        
+        # Actualizar posiciones medias del jugador que da el pase (usa x, y)
+        from_player.avg_x_given = (
+            (from_player.avg_x_given * (from_player.passes_given - 1) + x) / from_player.passes_given
+        )
+        from_player.avg_y_given = (
+            (from_player.avg_y_given * (from_player.passes_given - 1) + y) / from_player.passes_given
+        )
+        
+        # Actualizar posiciones medias del jugador que recibe el pase (usa end_x, end_y)
+        to_player.avg_x_received = (
+            (to_player.avg_x_received * (to_player.passes_received - 1) + end_x) / to_player.passes_received
+        )
+        to_player.avg_y_received = (
+            (to_player.avg_y_received * (to_player.passes_received - 1) + end_y) / to_player.passes_received
+        )
+        
+        # Actualizar posición media total del jugador que da (usa x, y)
+        total_passes_involved = from_player.passes_given + from_player.passes_received
+        from_player.avg_x_total = (
+            (from_player.avg_x_total * (total_passes_involved - 1) + x) / total_passes_involved
+        )
+        from_player.avg_y_total = (
+            (from_player.avg_y_total * (total_passes_involved - 1) + y) / total_passes_involved
+        )
+        
+        # Actualizar posición media total del jugador que recibe (usa end_x, end_y)
+        total_passes_involved_to = to_player.passes_given + to_player.passes_received
+        to_player.avg_x_total = (
+            (to_player.avg_x_total * (total_passes_involved_to - 1) + end_x) / total_passes_involved_to
+        )
+        to_player.avg_y_total = (
+            (to_player.avg_y_total * (total_passes_involved_to - 1) + end_y) / total_passes_involved_to
+        )
+        
+        # Crear o actualizar la arista dirigida (usa x, y - posición de origen)
         edge_key = (from_player_id, to_player_id)
         if edge_key in self.edges:
-            self.edges[edge_key].pass_count += 1
+            edge = self.edges[edge_key]
+            edge.avg_x = (edge.avg_x * (edge.pass_count) + x) / (edge.pass_count + 1)
+            edge.avg_y = (edge.avg_y * (edge.pass_count) + y) / (edge.pass_count + 1)
+            edge.pass_count += 1
         else:
-            self.edges[edge_key] = PassEdge(from_player_id, to_player_id, 1)
+            self.edges[edge_key] = PassEdge(from_player_id, to_player_id, 1, x, y)
     
     def get_nodes(self) -> List[Dict[str, Any]]:
         """Retorna lista de nodos con sus propiedades."""
@@ -97,7 +174,7 @@ class PassNetwork:
         return [edge.to_dict() for edge in self.edges.values()]
     
     def get_player_info(self, player_id: str) -> Dict[str, Any]:
-        """Obtiene información de un jugador específico."""
+        """Obtiene información detallada de un jugador específico."""
         if player_id not in self.players:
             return {}
         
@@ -140,6 +217,20 @@ class PassNetwork:
             "passes_made": passes_made,
             "passes_received": passes_received,
             "total_passes_involved": passes_made + passes_received,
+            "passes_given": player.passes_given,
+            "passes_received_stat": player.passes_received,
+            "avg_position_given": {
+                "x": round(player.avg_x_given, 2),
+                "y": round(player.avg_y_given, 2),
+            },
+            "avg_position_received": {
+                "x": round(player.avg_x_received, 2),
+                "y": round(player.avg_y_received, 2),
+            },
+            "avg_position_total": {
+                "x": round(player.avg_x_total, 2),
+                "y": round(player.avg_y_total, 2),
+            },
             "connections_out": connections_out,
             "connections_in": connections_in,
         }
@@ -180,6 +271,8 @@ def build_pass_network_from_events(
     Returns:
         PassNetwork: Grafo de pases construido
     """
+    logger.info(f"Construyendo la red de pases con args: team_id={team_id}, events_count={len(events)}, min_pass_count={min_pass_count}")
+    
     network = PassNetwork(team_id=team_id)
     
     # Filtrar eventos de pase exitosos
@@ -188,33 +281,51 @@ def build_pass_network_from_events(
         if event.get("event_name") == "Pass" and event.get("outcome") == "1"
     ]
     
+    logger.info(f"Pases exitosos encontrados: {len(pass_events)}")
+    
     # Filtrar por equipo si es necesario
     if team_id:
         pass_events = [e for e in pass_events if e.get("team_id") == team_id]
+        logger.info(f"Pases filtrados por equipo {team_id}: {len(pass_events)}")
     
     # Procesar cada pase
+    passes_processed = 0
+    passes_with_receiver = 0
+    
     for event in pass_events:
         from_player_id = event.get("player_id", "")
         player_name = event.get("player_name", "")
         current_team_id = event.get("team_id", "")
+        x = float(event.get("x", 0.0))
+        y = float(event.get("y", 0.0))
         
         if not from_player_id:
             continue
         
-        # Buscar el receptor del pase en los qualifiers
-        # El qualifier 72 contiene el player_id del receptor
-        to_player_id = None
+        passes_processed += 1
+        
+        # Buscar el receptor del pase en player_receiver_id
+        to_player_id = event.get("player_receiver_id", "")
+        
+        # Extraer end_x (qualifier 140) y end_y (qualifier 141) de los qualifiers
+        end_x = 0.0
+        end_y = 0.0
         qualifiers = event.get("qualifiers", [])
         
         for qualifier in qualifiers:
-            if qualifier.get("qualifier_id") == "72":
-                to_player_id = qualifier.get("value", "")
-                break
+            if qualifier.get("qualifier_id") == "140":
+                end_x = float(qualifier.get("value", 0.0))
+            elif qualifier.get("qualifier_id") == "141":
+                end_y = float(qualifier.get("value", 0.0))
         
         if to_player_id:
-            # Añadir el pase a la red
+            passes_with_receiver += 1
+            # Añadir el pase a la red con posiciones de origen y destino
             network.add_player(from_player_id, player_name, current_team_id)
-            network.add_pass(from_player_id, to_player_id)
+            network.add_pass(from_player_id, to_player_id, x, y, end_x, end_y)
+    
+    logger.info(f"Pases procesados: {passes_processed}, con receptor: {passes_with_receiver}")
+    logger.info(f"Red construida: {len(network.players)} jugadores, {len(network.edges)} conexiones")
     
     # Aplicar filtro de pases mínimos entre jugadores si es necesario
     if min_pass_count > 0:
