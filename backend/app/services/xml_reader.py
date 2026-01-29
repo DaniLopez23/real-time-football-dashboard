@@ -168,6 +168,8 @@ def parse_xml_to_json(xml_file_path: str, output_json_path: str | None = None) -
 
 def read_full_xml(file_path: str) -> Dict[str, Any]:
     """Parse the full XML and update global match_state for HTTP/WS endpoints."""
+    
+    logger.info(f"Reading and parsing XML file: {file_path}")
     parsed = parse_xml_file(file_path)
 
     # Ahora solo hay un game, no un array
@@ -184,11 +186,16 @@ def read_full_xml(file_path: str) -> Dict[str, Any]:
     match_state.events = enriched_events
     match_state.last_event_id = enriched_events[-1]["id"] if enriched_events else None
 
-    return {
+    result = {
         "total_events": len(enriched_events),
         "last_event_id": match_state.last_event_id,
         "data": parsed,
     }
+    
+    if result["last_event_id"]:
+        logger.info(f"✓ Parsed {result['total_events']} events. Last event ID: {result['last_event_id']}")
+   
+    return result  
 
 
 async def read_full_xml_async(file_path: str) -> Dict[str, Any]:
