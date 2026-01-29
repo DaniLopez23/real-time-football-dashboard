@@ -1,22 +1,17 @@
-import { Layout, Typography } from 'antd';
-import DashboardHeader from './layout/DahsboardHeader';
-import EventPitch from './Pitch/EventPitch';
-import NetworkPassPitch from './Pitch/NetworkPassPitch';
-import GlobalStats from './Stats/GlobalStats';
-import TeamStats from './Stats/TeamStats';
-
-const { Content } = Layout;
-const { Title } = Typography;
+import { useState } from 'react';
+import SideBar from "./layout/SideBar"
+import DashboardLayout from "./layout/DashboardLayout"
 
 function App() {
+  const [selectedOption, setSelectedOption] = useState('home');
+
   return (
-    <Layout className="min-h-screen bg-gray-900">
-      <DashboardHeader />
-      
-      <Content className="">
-        <EventPitch />
-      </Content>
-    </Layout>
+    <div className="flex h-screen bg-slate-950">
+      <SideBar onSelectOption={setSelectedOption} />
+      <div className="flex-1 overflow-auto">
+        <DashboardLayout /> 
+      </div>
+    </div>
   )
 }
 
