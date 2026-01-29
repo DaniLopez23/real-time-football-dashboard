@@ -16,7 +16,7 @@ const DashboardHeader: React.FC = () => {
     >
       <div>
         <Image
-          src="/app_logo.png"
+          src="/public/app_logo.png"
           alt="LiveBall Logo"
           width={48}
           height={48}

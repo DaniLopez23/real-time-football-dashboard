@@ -118,7 +118,7 @@ const OptaPitch: React.FC<OptaPitchProps> = ({
       .endAngle(Math.PI / 2);
 
     g.append('path')
-      .attr('d', leftArc)
+      .attr('d', leftArc as any)
       .attr('transform', `translate(${xScale(11)},${yScale(50)}) rotate(90)`)
       .attr('fill', 'none')
       .attr('stroke', 'white')
@@ -132,7 +132,7 @@ const OptaPitch: React.FC<OptaPitchProps> = ({
       .endAngle(Math.PI / 2);
 
     g.append('path')
-      .attr('d', rightArc)
+      .attr('d', rightArc as any)
       .attr('transform', `translate(${xScale(89)},${yScale(50)}) rotate(-90)`)
       .attr('fill', 'none')
       .attr('stroke', 'white')

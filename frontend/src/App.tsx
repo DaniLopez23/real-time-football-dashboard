@@ -10,10 +10,10 @@ const { Title } = Typography;
 
 function App() {
   return (
-    <Layout style={{ backgroundColor: '#020617' }} className="min-h-screen">
+    <Layout className="min-h-screen bg-gray-900">
       <DashboardHeader />
       
-      <Content className="p-6">
+      <Content className="">
         <EventPitch />
       </Content>
     </Layout>
