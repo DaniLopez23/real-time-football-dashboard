@@ -59,18 +59,18 @@ const PassNetworkMainInfo: React.FC<PassNetworkMainInfoProps> = ({ teamId }) => 
   )
 
   const highlights: HighlightStat[] = [
-    {
-      label: 'Jugador con más pases dados',
-      playerId: topPasser.player_id,
-      value: topPasser.passes_given,
-      metric: 'pases'
-    },
-    {
-      label: 'Jugador con más pases recibidos',
-      playerId: topReceiver.player_id,
-      value: topReceiver.passes_received,
-      metric: 'pases'
-    },
+    // {
+    //   label: 'Jugador con más pases dados',
+    //   playerId: topPasser.player_id,
+    //   value: topPasser.passes_given,
+    //   metric: 'pases'
+    // },
+    // {
+    //   label: 'Jugador con más pases recibidos',
+    //   playerId: topReceiver.player_id,
+    //   value: topReceiver.passes_received,
+    //   metric: 'pases'
+    // },
     {
       label: 'Jugador más influyente',
       playerId: mostInfluential.player_id,
@@ -85,7 +85,7 @@ const PassNetworkMainInfo: React.FC<PassNetworkMainInfoProps> = ({ teamId }) => 
       {highlights.map((highlight, index) => (
         <div
           key={index}
-          className="border-b border-slate-700/50 pb-2"
+          className="pb-2"
         >
           <div className="text-slate-500 text-[10px] uppercase tracking-wide mb-1">
             {highlight.label}
@@ -102,7 +102,7 @@ const PassNetworkMainInfo: React.FC<PassNetworkMainInfoProps> = ({ teamId }) => 
       ))}
 
       {/* Conexión más fuerte */}
-      <div className="border-b border-slate-700/50 pb-2">
+      <div className="pb-2">
         <div className="text-slate-500 text-[10px] uppercase tracking-wide mb-1">
           Conexión más fuerte
         </div>
