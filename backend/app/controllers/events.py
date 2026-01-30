@@ -102,7 +102,7 @@ async def get_pass_network(file_path: str, team_id: str = "", min_pass_count: in
         Grafo de la red de pases con nodos, aristas y estadísticas
     """
     events = await get_all_events(file_path)
-    network = build_pass_network_from_events(events, team_id, min_pass_count)
+    network = build_pass_network_from_events(events, team_id, min_pass_count = 5)
     return network.to_dict()
 
 

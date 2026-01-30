@@ -195,90 +195,50 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 600
               </g>
             )
           })}
-
-          {/* === TOOLTIP NODOS === */}
-          {hoveredNode && (
-            <g pointerEvents="none">
-              {/* Fondo */}
-              <rect
-                x={hoveredNode.x - 55}
-                y={hoveredNode.y - 55}
-                rx={6}
-                ry={6}
-                width={110}
-                height={42}
-                fill="#0f172a"
-                stroke="#334155"
-                strokeWidth={1}
-                opacity={0.95}
-              />
-
-              {/* Texto */}
-              <text
-                x={hoveredNode.x}
-                y={hoveredNode.y - 35}
-                textAnchor="middle"
-                fill="#e5e7eb"
-                fontSize={11}
-                fontWeight="bold"
-              >
-                Jugador {hoveredNode.player_id}
-              </text>
-
-              <text
-                x={hoveredNode.x}
-                y={hoveredNode.y - 20}
-                textAnchor="middle"
-                fill="#60a5fa"
-                fontSize={11}
-              >
-                Pases: {hoveredNode.pass_count}
-              </text>
-            </g>
-          )}
-
-          {/* === TOOLTIP ARISTAS === */}
-          {hoveredEdge && (
-            <g pointerEvents="none">
-              {/* Fondo */}
-              <rect
-                x={hoveredEdge.x - 75}
-                y={hoveredEdge.y - 60}
-                rx={6}
-                ry={6}
-                width={150}
-                height={56}
-                fill="#0f172a"
-                stroke="#334155"
-                strokeWidth={1}
-                opacity={0.95}
-              />
-
-              {/* Texto */}
-              <text
-                x={hoveredEdge.x}
-                y={hoveredEdge.y - 40}
-                textAnchor="middle"
-                fill="#e5e7eb"
-                fontSize={11}
-                fontWeight="bold"
-              >
-                Pase: {hoveredEdge.from_player_id} → {hoveredEdge.to_player_id}
-              </text>
-
-              <text
-                x={hoveredEdge.x}
-                y={hoveredEdge.y - 25}
-                textAnchor="middle"
-                fill="#60a5fa"
-                fontSize={11}
-              >
-                Conexiones: {hoveredEdge.pass_count}
-              </text>
-            </g>
-          )}
         </svg>
       </OptaPitch>
+
+      {/* === TOOLTIP NODOS (fuera del SVG) === */}
+      {hoveredNode && (
+        <div
+          className="absolute pointer-events-none z-50"
+          style={{
+            left: `${hoveredNode.x}px`,
+            top: `${hoveredNode.y - 55}px`,
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <div className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 shadow-xl">
+            <div className="text-slate-200 text-xs font-semibold whitespace-nowrap">
+              Jugador {hoveredNode.player_id}
+            </div>
+            <div className="text-blue-400 text-xs whitespace-nowrap">
+              Pases: {hoveredNode.pass_count}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === TOOLTIP ARISTAS (fuera del SVG) === */}
+      {hoveredEdge && (
+        <div
+          className="absolute pointer-events-none z-50"
+          style={{
+            left: `${hoveredEdge.x}px`,
+            top: `${hoveredEdge.y - 60}px`,
+            transform: 'translateX(-50%)',
+          }}
+        >
+          <div className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 shadow-xl">
+            <div className="text-slate-200 text-xs font-semibold whitespace-nowrap">
+              Pase: {hoveredEdge.from_player_id} → {hoveredEdge.to_player_id}
+            </div>
+            <div className="text-blue-400 text-xs whitespace-nowrap">
+              Conexiones: {hoveredEdge.pass_count}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
