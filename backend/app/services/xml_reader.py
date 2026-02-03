@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Dict, List
 import logging
+import time
 from app.state.match_state import match_state
 from app.services.compute_player_pass_receiver import add_pass_receiver_info
 
@@ -166,6 +167,18 @@ def parse_xml_to_json(xml_file_path: str, output_json_path: str | None = None) -
     return result
 
 
+def read_xml_file_game(xml_file_path: str) -> Dict[str, Any]:
+    """Devuelve solo la sección Game del XML."""
+    parsed = parse_xml_file(xml_file_path)
+    return parsed.get("game", {})
+
+
+def read_xml_file_events(xml_file_path: str) -> List[Dict[str, Any]]:
+    """Devuelve solo la lista de Events del XML."""
+    game = read_xml_file_game(xml_file_path)
+    return game.get("events", [])
+
+
 def read_full_xml(file_path: str) -> Dict[str, Any]:
     """Parse the full XML and update global match_state for HTTP/WS endpoints."""
     
@@ -195,12 +208,77 @@ def read_full_xml(file_path: str) -> Dict[str, Any]:
     if result["last_event_id"]:
         logger.info(f"✓ Parsed {result['total_events']} events. Last event ID: {result['last_event_id']}")
    
-    return result  
+    return result
 
 
 async def read_full_xml_async(file_path: str) -> Dict[str, Any]:
     """Async wrapper to avoid blocking FastAPI/WS event loops."""
     return await asyncio.to_thread(read_full_xml, file_path)
+
+
+async def watch_simulated_real_time_data(
+    poll_interval: int = 3,
+    on_new_data: callable = None
+) -> None:
+    """
+    Lee el archivo XML de simulated-real-time-data cada N segundos y lo procesa.
+    
+    Args:
+        poll_interval: Intervalo en segundos entre lecturas (default: 3s)
+        on_new_data: Callback opcional que se ejecuta cuando hay nuevos datos
+    """
+    # Ruta a la carpeta de datos simulados
+    simulated_data_path = Path(__file__).parent.parent.parent.parent / "simulated-real-time-data"
+    
+    logger.info(f"🔄 Iniciando monitoreo de datos simulados en tiempo real")
+    logger.info(f"📁 Ruta: {simulated_data_path}")
+    logger.info(f"⏱️  Intervalo de lectura: {poll_interval} segundos\n")
+    
+    last_modified_time = None
+    
+    while True:
+        try:
+            # Buscar archivos XML en la carpeta
+            xml_files = list(simulated_data_path.glob("*.xml"))
+            
+            if xml_files:
+                # Usar el archivo más reciente
+                latest_file = max(xml_files, key=lambda p: p.stat().st_mtime)
+                current_modified_time = latest_file.stat().st_mtime
+                
+                # Si el archivo fue modificado desde la última lectura
+                if last_modified_time is None or current_modified_time > last_modified_time:
+                    logger.info(f"📖 Leyendo archivo: {latest_file.name}")
+                    
+                    try:
+                        # Parsear el archivo XML
+                        result = read_full_xml(str(latest_file))
+                        
+                        total_events = result.get("total_events", 0)
+                        last_event_id = result.get("last_event_id", None)
+                        
+                        logger.info(f"✅ Procesados {total_events} eventos (Último ID: {last_event_id})")
+                        
+                        # Ejecutar callback si está definido
+                        if on_new_data:
+                            await on_new_data(result)
+                        
+                        last_modified_time = current_modified_time
+                        
+                    except Exception as e:
+                        logger.error(f"❌ Error al procesar XML: {e}")
+                        logger.debug(f"   Detalles: {str(e)}")
+                else:
+                    logger.debug(f"ℹ️  Archivo sin cambios, esperando siguiente revisión...")
+            else:
+                logger.warning(f"⚠️  No se encontraron archivos XML en {simulated_data_path}")
+            
+            # Esperar antes de la siguiente lectura
+            await asyncio.sleep(poll_interval)
+            
+        except Exception as e:
+            logger.error(f"❌ Error en monitoreo de datos simulados: {e}")
+            await asyncio.sleep(poll_interval)
 
 
 def main() -> Dict[str, Any]:

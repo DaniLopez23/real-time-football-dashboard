@@ -1,19 +1,57 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 import os
+import asyncio
 from dotenv import load_dotenv
 import uvicorn
 from app.core.logging import setup_logging
-from app.routes import index, events, games
+from app.routes import index, events, games, websocket
+from app.services.xml_reader import watch_simulated_real_time_data
+from app.websockets import ConnectionManager
+from app.websockets.event_broadcaster import broadcast_game_events
 
 setup_logging()
 
 load_dotenv()
 
+# Instancia global del manager de WebSockets
+ws_manager = ConnectionManager()
+
+
+async def on_new_data_callback(result):
+    """Callback que se ejecuta cuando llegan nuevos datos"""
+    await broadcast_game_events(result, ws_manager)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("⚙️ Iniciando servidor...")
+    task = asyncio.create_task(
+        watch_simulated_real_time_data(
+            poll_interval=3,
+            on_new_data=on_new_data_callback
+        )
+    )
+    print("✅ Monitoreo de datos simulados iniciado")
+    
+    yield
+    
+    # Shutdown
+    print("🛑 Servidor apagándose...")
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
 app = FastAPI(
     title="Real-Time Football Dashboard API",
     description="API para el dashboard de fútbol en tiempo real",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Configurar CORS
@@ -47,6 +85,11 @@ app.include_router(
     games.app,
     prefix="",
     tags=["Games"]
+)
+
+app.include_router(
+    websocket.router,
+    tags=["WebSocket"]
 )
 
 
