@@ -34,6 +34,7 @@ class ConnectionManager:
         # Crear room si no existe
         if game_id not in self.active_connections:
             self.active_connections[game_id] = {}
+            logger.info(f"🆕 Nuevo room creado: {game_id}")
         
         # Generar ID único para el cliente
         self.client_counter += 1
@@ -42,8 +43,10 @@ class ConnectionManager:
         # Añadir cliente al room
         self.active_connections[game_id][client_id] = websocket
         
-        logger.info(f"✅ Cliente {client_id} conectado al room {game_id}")
-        logger.info(f"   Clientes activos en room {game_id}: {len(self.active_connections[game_id])}")
+        logger.info(f"✅ [CONEXIÓN] Cliente {client_id} conectado al room {game_id}")
+        logger.info(f"📊 [STATS] Clientes en room {game_id}: {len(self.active_connections[game_id])}")
+        logger.info(f"📊 [STATS] Total de rooms activos: {len(self.active_connections)}")
+        logger.info(f"📊 [STATS] Total de clientes: {sum(len(clients) for clients in self.active_connections.values())}")
         
         return client_id
     
@@ -58,13 +61,16 @@ class ConnectionManager:
         if game_id in self.active_connections:
             if client_id in self.active_connections[game_id]:
                 del self.active_connections[game_id][client_id]
-                logger.info(f"❌ Cliente {client_id} desconectado del room {game_id}")
-                logger.info(f"   Clientes activos en room {game_id}: {len(self.active_connections[game_id])}")
+                logger.info(f"❌ [DESCONEXIÓN] Cliente {client_id} desconectado del room {game_id}")
+                logger.info(f"📊 [STATS] Clientes restantes en room {game_id}: {len(self.active_connections[game_id])}")
                 
                 # Eliminar room si está vacío
                 if not self.active_connections[game_id]:
                     del self.active_connections[game_id]
-                    logger.info(f"🗑️  Room {game_id} eliminado (sin clientes)")
+                    logger.info(f"🗑️  [CLEANUP] Room {game_id} eliminado (sin clientes)")
+                
+                logger.info(f"📊 [STATS] Total de rooms activos: {len(self.active_connections)}")
+                logger.info(f"📊 [STATS] Total de clientes: {sum(len(clients) for clients in self.active_connections.values())}")
     
     async def broadcast_to_room(self, game_id: str, message: dict):
         """
@@ -75,7 +81,7 @@ class ConnectionManager:
             message: Diccionario con los datos a enviar
         """
         if game_id not in self.active_connections:
-            logger.warning(f"⚠️  No hay clientes conectados al room {game_id}")
+            logger.warning(f"⚠️  No hay clientes conectados al room {game_id}. Conexiones activas: {self.active_connections}")
             return
         
         disconnected_clients = []
@@ -125,14 +131,41 @@ class ConnectionManager:
         """
         total_clients = sum(len(clients) for clients in self.active_connections.values())
         
+        rooms_detail = {}
+        for game_id, clients in self.active_connections.items():
+            rooms_detail[game_id] = {
+                "clients_count": len(clients),
+                "client_ids": list(clients.keys())
+            }
+        
         return {
             "total_rooms": len(self.active_connections),
             "total_clients": total_clients,
-            "rooms": {
-                game_id: len(clients)
-                for game_id, clients in self.active_connections.items()
-            }
+            "rooms": rooms_detail,
+            "active": total_clients > 0
         }
+    
+    def print_stats(self):
+        """
+        Imprime estadísticas de conexiones en el log.
+        """
+        stats = self.get_stats()
+        logger.info("\n" + "="*60)
+        logger.info("📊 ESTADO DE CONEXIONES WEBSOCKET")
+        logger.info("="*60)
+        logger.info(f"Total de rooms activos: {stats['total_rooms']}")
+        logger.info(f"Total de clientes: {stats['total_clients']}")
+        
+        if stats['rooms']:
+            logger.info("\nDetalle por room:")
+            for game_id, room_info in stats['rooms'].items():
+                logger.info(f"  • Room '{game_id}': {room_info['clients_count']} cliente(s)")
+                for client_id in room_info['client_ids']:
+                    logger.info(f"    - {client_id}")
+        else:
+            logger.info("\n⚠️  No hay conexiones activas")
+        
+        logger.info("="*60 + "\n")
 
 
 # Instancia global del manager

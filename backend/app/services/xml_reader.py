@@ -17,6 +17,8 @@ BASE_PATH = Path(__file__).parent.parent
 EVENT_MAPPER = None
 QUALIFIER_MAPPER = None
 
+SIMULATED_DATA_FILE = BASE_PATH.parent.parent / "simulated-real-time-data" / "050226-00.xml"
+    
 
 def _load_json_mapper(relative_path: str) -> Dict[str, Any]:
     mapper_path = BASE_PATH / relative_path
@@ -227,55 +229,83 @@ async def watch_simulated_real_time_data(
         poll_interval: Intervalo en segundos entre lecturas (default: 3s)
         on_new_data: Callback opcional que se ejecuta cuando hay nuevos datos
     """
-    # Ruta a la carpeta de datos simulados
-    simulated_data_path = Path(__file__).parent.parent.parent.parent / "simulated-real-time-data"
     
     logger.info(f"🔄 Iniciando monitoreo de datos simulados en tiempo real")
-    logger.info(f"📁 Ruta: {simulated_data_path}")
+    logger.info(f"📁 Ruta: {SIMULATED_DATA_FILE}")
     logger.info(f"⏱️  Intervalo de lectura: {poll_interval} segundos\n")
     
     last_modified_time = None
+    last_game_id = None
+    last_game_info = None
+    last_events_by_id: Dict[str, Dict[str, Any]] = {}
     
     while True:
         try:
-            # Buscar archivos XML en la carpeta
-            xml_files = list(simulated_data_path.glob("*.xml"))
-            
-            if xml_files:
-                # Usar el archivo más reciente
-                latest_file = max(xml_files, key=lambda p: p.stat().st_mtime)
-                current_modified_time = latest_file.stat().st_mtime
-                
-                # Si el archivo fue modificado desde la última lectura
-                if last_modified_time is None or current_modified_time > last_modified_time:
-                    logger.info(f"📖 Leyendo archivo: {latest_file.name}")
-                    
-                    try:
-                        # Parsear el archivo XML
-                        result = read_full_xml(str(latest_file))
-                        
-                        total_events = result.get("total_events", 0)
-                        last_event_id = result.get("last_event_id", None)
-                        
-                        logger.info(f"✅ Procesados {total_events} eventos (Último ID: {last_event_id})")
-                        
-                        # Ejecutar callback si está definido
-                        if on_new_data:
-                            await on_new_data(result)
-                        
-                        last_modified_time = current_modified_time
-                        
-                    except Exception as e:
-                        logger.error(f"❌ Error al procesar XML: {e}")
-                        logger.debug(f"   Detalles: {str(e)}")
-                else:
-                    logger.debug(f"ℹ️  Archivo sin cambios, esperando siguiente revisión...")
-            else:
-                logger.warning(f"⚠️  No se encontraron archivos XML en {simulated_data_path}")
-            
-            # Esperar antes de la siguiente lectura
+            if not SIMULATED_DATA_FILE.exists():
+                logger.warning(f"⚠️  Archivo no encontrado: {SIMULATED_DATA_FILE}")
+                await asyncio.sleep(poll_interval)
+                continue
+
+            current_modified_time = SIMULATED_DATA_FILE.stat().st_mtime
+            if last_modified_time is not None and current_modified_time <= last_modified_time:
+                await asyncio.sleep(poll_interval)
+                continue
+
+            parsed = parse_xml_file(str(SIMULATED_DATA_FILE))
+            game = parsed.get("game", {})
+            if not game:
+                logger.warning("⚠️  No se encontro informacion de Game en el XML")
+                last_modified_time = current_modified_time
+                await asyncio.sleep(poll_interval)
+                continue
+
+            events = game.get("events", [])
+            enriched_events = add_pass_receiver_info(events)
+            game["events"] = enriched_events
+
+            game_id = game.get("game_id", "unknown")
+            if last_game_id is not None and game_id != last_game_id:
+                last_events_by_id = {}
+                last_game_info = None
+
+            updates: List[Dict[str, Any]] = []
+
+            game_snapshot = {k: v for k, v in game.items() if k != "events"}
+            if last_game_info is None:
+                updates.append({
+                    "type": "game_new",
+                    "game_id": game_id,
+                    "timestamp": parsed.get("timestamp", ""),
+                    "game": game_snapshot,
+                })
+                last_game_info = game_snapshot
+
+            new_events: List[Dict[str, Any]] = []
+            for event in enriched_events:
+                event_key = (
+                    event.get("team_id"),
+                    event.get("event_id") or event.get("id"),
+                    event.get("type_id")
+                )
+                if event_key not in last_events_by_id:
+                    new_events.append(event)
+                last_events_by_id[event_key] = event
+
+            if new_events:
+                updates.append({
+                    "type": "new_events",
+                    "game_id": game_id,
+                    "total_events": len(enriched_events),
+                    "last_event_id": enriched_events[-1].get("id") if enriched_events else None,
+                    "events": new_events,
+                })
+
+            if updates and on_new_data:
+                await on_new_data(updates)
+
+            last_game_id = game_id
+            last_modified_time = current_modified_time
             await asyncio.sleep(poll_interval)
-            
         except Exception as e:
             logger.error(f"❌ Error en monitoreo de datos simulados: {e}")
             await asyncio.sleep(poll_interval)

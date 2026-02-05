@@ -37,7 +37,7 @@ def add_pass_receiver_info(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]
     pass_count = 0
     passes_with_receiver = 0
     
-    logger.debug(f"Processing {len(events)} events")
+    logger.info(f"Processing {len(events)} events")
     
     for index, event in enumerate(events):
         # Create a copy to avoid modifying original
@@ -64,7 +64,7 @@ def add_pass_receiver_info(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]
         
         enriched_events.append(enriched_event)
     
-    logger.info(f"Processed {pass_count} passes, {passes_with_receiver} with receiver info")
+    # logger.info(f"Processed {pass_count} passes, {passes_with_receiver} with receiver info")
     
     return enriched_events
 

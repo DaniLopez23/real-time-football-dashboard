@@ -1,13 +1,46 @@
-import React from "react";
+import React, { useState } from "react";
 import OptaPitch from "@/components/Pitch/OptaPitch";
 import NetworkPassPitch from "@/components/Pitch/PassNetworkPitch";
 import PassNetworkTabs from "@/components/Pitch/PassNetworkTabs";
+import ConnectionStatusBar from "@/components/ConnectionStatusBar";
+import { useWebSocket, type WebSocketStatus } from "@/hooks/useWebSocket";
+
+interface GameInfo {
+  id: string;
+  name: string;
+  homeTeam: string;
+  awayTeam: string;
+}
 
 const DashboardLayout: React.FC = () => {
+  const [wsStatus, setWsStatus] = useState<WebSocketStatus>('disconnected');
+  const [selectedGame] = useState<GameInfo>({
+    id: '2372222',
+    name: 'Partido de prueba',
+    homeTeam: 'Equipo A',
+    awayTeam: 'Equipo B',
+  });
+
+  // Configurar WebSocket
+  useWebSocket({
+    url: 'ws://localhost:8000',
+    gameId: selectedGame.id,
+    onStatusChange: setWsStatus,
+    onMessage: (data) => {
+      console.log('Mensaje WebSocket recibido:', data);
+      // Aquí puedes procesar los mensajes del backend
+    },
+  });
+
   return (
     <div className="h-screen w-full bg-slate-950">
       {/* Grid Container */}
       <div className="h-full flex flex-col p-4 gap-2 overflow-auto">
+        {/* Fila 0: Estado de conexión y partido seleccionado */}
+        <div className="flex-shrink-0">
+          <ConnectionStatusBar status={wsStatus} selectedGame={selectedGame} />
+        </div>
+
         {/* Fila 1: 3 columnas - 40% de altura */}
         <div className="grid grid-cols-12 gap-2 min-h-[40vh]">
           {/* Columna 1 - Grande */}

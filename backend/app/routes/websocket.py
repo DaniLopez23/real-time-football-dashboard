@@ -1,11 +1,12 @@
 import logging
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from app.websockets import ConnectionManager
+from app.websockets.connection_manager import connection_manager
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-manager = ConnectionManager()
+# Usar la instancia global en lugar de crear una nueva
+manager = connection_manager
 
 
 @router.websocket("/ws/game/{game_id}")
@@ -28,6 +29,8 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
         "message": f"Conectado al room {game_id}"
     })
     
+    logger.info(f"💬 Mensaje de bienvenida enviado a {client_id}")
+    
     try:
         while True:
             # Recibir mensajes del cliente (heartbeat, etc.)
@@ -38,6 +41,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     "type": "pong",
                     "message": "pong"
                 })
+                logger.debug(f"🏓 Pong enviado a {client_id}")
             else:
                 logger.debug(f"📨 Mensaje recibido de {client_id}: {data}")
     

@@ -45,6 +45,26 @@ async def broadcast_game_events(result: Dict[str, Any], manager: ConnectionManag
         logger.error(f"❌ Error broadcasting eventos: {e}")
 
 
+async def broadcast_message(message: Dict[str, Any], manager: ConnectionManager):
+    """
+    Envía un mensaje ya formado a los clientes del room correspondiente.
+
+    Args:
+        message: Mensaje a enviar (debe incluir game_id)
+        manager: Instancia del ConnectionManager
+    """
+    try:
+        game_id = message.get("game_id")
+        if not game_id:
+            logger.warning("⚠️  Mensaje sin game_id, no se envía")
+            return
+
+        await manager.broadcast_to_room(game_id, message)
+        logger.debug(f"📤 Mensaje {message.get('type', 'unknown')} enviado al room {game_id}")
+    except Exception as e:
+        logger.error(f"❌ Error broadcasting mensaje: {e}")
+
+
 async def broadcast_event_incremental(event: Dict[str, Any], game_id: str, manager: ConnectionManager):
     """
     Envía un evento individual a los clientes de un room.

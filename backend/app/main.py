@@ -8,20 +8,21 @@ import uvicorn
 from app.core.logging import setup_logging
 from app.routes import index, events, games, websocket
 from app.services.xml_reader import watch_simulated_real_time_data
-from app.websockets import ConnectionManager
-from app.websockets.event_broadcaster import broadcast_game_events
+from app.websockets.connection_manager import connection_manager
+from app.websockets.event_broadcaster import broadcast_message
 
 setup_logging()
 
 load_dotenv()
 
-# Instancia global del manager de WebSockets
-ws_manager = ConnectionManager()
+# Usar la instancia global del manager de WebSockets
+ws_manager = connection_manager
 
 
-async def on_new_data_callback(result):
+async def on_new_data_callback(updates):
     """Callback que se ejecuta cuando llegan nuevos datos"""
-    await broadcast_game_events(result, ws_manager)
+    for message in updates:
+        await broadcast_message(message, ws_manager)
 
 
 @asynccontextmanager
