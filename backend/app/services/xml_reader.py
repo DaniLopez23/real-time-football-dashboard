@@ -205,7 +205,7 @@ def _process_pass_events_for_network(
     affected_edges = set()
     
     processed_count = 0
-    
+    logger.info(f"Processing {len(events)} pass events for team {team_id} in network {network.team_id}")
     for event in events:
         # Solo procesar pases exitosos del equipo especificado
         if event.get("type_id") != "1" or event.get("outcome") != "1":
@@ -214,6 +214,7 @@ def _process_pass_events_for_network(
             continue
             
         from_player_id = event.get("player_id", "")
+        logger.info(f"Processing pass event {event.get('event_id')} from player {from_player_id} for team {team_id}")
         to_player_id = event.get("player_receiver_id", "")
         
         if not from_player_id or not to_player_id:
@@ -330,9 +331,7 @@ async def watch_simulated_real_time_data(
                     and e.get("outcome") == "1"
                     and e.get("player_receiver_id")  # Solo pases con receptor conocido
                 ]
-                
-                logger.info(f"🎮 Nuevo juego detectado: calculando redes iniciales con {len(initial_pass_events)} pases")
-                
+                                
                 if initial_pass_events:
                     teams = set(e.get("team_id") for e in initial_pass_events if e.get("team_id"))
                     
@@ -418,11 +417,11 @@ async def watch_simulated_real_time_data(
             if pass_events:
                 # Agrupar por equipo
                 teams = set(e.get("team_id") for e in pass_events if e.get("team_id"))
-                
+                logger.info(f"🎮 Procesando {len(pass_events)} eventos de pase para equipos: {', '.join(teams)}")
                 for team_id in teams:
                     team_pass_events = [e for e in pass_events if e.get("team_id") == team_id]
                     nodes, edges = _process_pass_events_for_network(team_pass_events, team_id)
-                    logger.debug(f"🎮 Procesados {len(team_pass_events)} eventos de pase para equipo {team_id}: {len(nodes)} nodos, {len(edges)} aristas")
+                    logger.info(f"🎮 Procesados {len(team_pass_events)} eventos de pase para equipo {team_id}: {len(nodes)} nodos, {len(edges)} aristas")
                     if nodes or edges:
                         updates.append({
                             "type": "new_pass_network_elements" if any(e in new_events for e in team_pass_events) else "update_pass_network_elements",

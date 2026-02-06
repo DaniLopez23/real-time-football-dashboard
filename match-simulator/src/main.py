@@ -109,10 +109,11 @@ def create_new_xml_streaming(source_xml: Path, output_filename: str):
         # Mostrar información del evento
         event_id = event_element.get("event_id", "?")
         type_id = event_element.get("type_id", "?")
+        team_id = event_element.get("team_id", "?")
         
         # Delay aleatorio entre 2-8 segundos
         delay = random.uniform(2, 8)
-        print(f"  [{idx:4d}] Event ID: {event_id:4s} | Type: {type_id:3s} | Delay: {delay:.2f}s | Total acumulados: {len(accumulated_events)}")
+        print(f"  [{idx:4d}] Event ID: {event_id:4s} | Type: {type_id:3s} | Team: {team_id:3s} | Delay: {delay:.2f}s | Total acumulados: {len(accumulated_events)}")
         
         # Aplicar delay para simular datos en tiempo real
         time.sleep(delay)
