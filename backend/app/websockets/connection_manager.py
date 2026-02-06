@@ -89,7 +89,7 @@ class ConnectionManager:
         for client_id, websocket in self.active_connections[game_id].items():
             try:
                 await websocket.send_json(message)
-                logger.debug(f"📤 Mensaje enviado a {client_id} en room {game_id}")
+                # logger.debug(f"📤 Mensaje enviado a {client_id} en room {game_id}")
             except Exception as e:
                 logger.error(f"❌ Error enviando mensaje a {client_id}: {e}")
                 disconnected_clients.append(client_id)

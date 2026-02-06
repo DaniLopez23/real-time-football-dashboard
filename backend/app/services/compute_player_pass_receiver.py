@@ -37,7 +37,7 @@ def add_pass_receiver_info(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]
     pass_count = 0
     passes_with_receiver = 0
     
-    logger.info(f"Processing {len(events)} events")
+    # logger.info(f"Processing {len(events)} events")
     
     for index, event in enumerate(events):
         # Create a copy to avoid modifying original
@@ -47,10 +47,7 @@ def add_pass_receiver_info(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]
         if _is_pass_event(event):
             pass_count += 1
             team_id = event.get("team_id")
-            player_id = event.get("player_id")
-            event_id = event.get("event_id")
             
-            logger.debug(f"Pass event found - Index: {index}, Event ID: {event_id}, Player: {player_id}, Team: {team_id}")
             
             next_team_event = _find_next_team_event(events, index, team_id)
             
@@ -58,9 +55,10 @@ def add_pass_receiver_info(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]
                 receiver_id = next_team_event.get("player_id")
                 enriched_event["player_receiver_id"] = receiver_id
                 passes_with_receiver += 1
-                logger.debug(f"  -> Receiver found: {receiver_id}")
+                # logger.debug(f"  -> Receiver found: {receiver_id}")
             else:
-                logger.debug(f"  -> No receiver found (no next team event)")
+                # logger.debug(f"  -> No receiver found (no next team event)")
+                pass
         
         enriched_events.append(enriched_event)
     

@@ -60,30 +60,7 @@ async def broadcast_message(message: Dict[str, Any], manager: ConnectionManager)
             return
 
         await manager.broadcast_to_room(game_id, message)
-        logger.debug(f"📤 Mensaje {message.get('type', 'unknown')} enviado al room {game_id}")
+        # logger.debug(f"📤 Mensaje {message.get('type', 'unknown')} enviado al room {game_id}")
     except Exception as e:
         logger.error(f"❌ Error broadcasting mensaje: {e}")
 
-
-async def broadcast_event_incremental(event: Dict[str, Any], game_id: str, manager: ConnectionManager):
-    """
-    Envía un evento individual a los clientes de un room.
-    Útil si quieres actualizar en tiempo real evento por evento.
-    
-    Args:
-        event: Evento individual
-        game_id: ID del juego
-        manager: Instancia del ConnectionManager
-    """
-    try:
-        message = {
-            "type": "new_event",
-            "game_id": game_id,
-            "event": event
-        }
-        
-        await manager.broadcast_to_room(game_id, message)
-        logger.debug(f"📤 Evento {event.get('event_id')} enviado al room {game_id}")
-        
-    except Exception as e:
-        logger.error(f"❌ Error broadcasting evento: {e}")
