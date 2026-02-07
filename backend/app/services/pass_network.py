@@ -84,20 +84,32 @@ class PassNetwork:
         players: Diccionario de nodos {player_id: Player}
         edges: Diccionario de aristas {(from_id, to_id): PassEdge}
         team_id: ID del equipo para filtrar (si se especifica)
+        changed_players: Conjunto de player_ids que han cambiado en la última operación incremental
+        changed_edges: Conjunto de edge_keys que han cambiado en la última operación incremental
+        processed_event_ids: Conjunto de event_ids ya procesados para evitar duplicados
     """
     
     players: Dict[str, Player] = field(default_factory=dict)
     edges: Dict[Tuple[str, str], PassEdge] = field(default_factory=dict)
     team_id: int = 0
+    changed_players: Set[str] = field(default_factory=set)
+    changed_edges: Set[Tuple[str, str]] = field(default_factory=set)
+    processed_event_ids: Set[str] = field(default_factory=set)
     
     def add_player(self, player_id: str, player_name: str = "", team_id: int = 0) -> None:
-        """Añade un nodo (jugador) a la red."""
+        """Añade un nodo (jugador) a la red y rastrea cambios."""
         if player_id not in self.players:
             self.players[player_id] = Player(player_id, player_name, team_id)
+            self.changed_players.add(player_id)
+        else:
+            # Actualizar nombre si se proporciona y es diferente
+            if player_name and self.players[player_id].player_name != player_name:
+                self.players[player_id].player_name = player_name
+                self.changed_players.add(player_id)
     
     def add_pass(self, from_player_id: str, to_player_id: str, x: float = 0.0, y: float = 0.0, end_x: float = 0.0, end_y: float = 0.0) -> None:
         """
-        Añade una arista dirigida de un jugador a otro.
+        Añade una arista dirigida de un jugador a otro y rastrea cambios.
         
         Args:
             from_player_id: ID del jugador que hace el pase
@@ -106,6 +118,9 @@ class PassNetwork:
             y: Posición en Y donde se inicia el pase
             end_x: Posición en X donde termina el pase (recepción)
             end_y: Posición en Y donde termina el pase (recepción)
+            
+        Returns:
+            Tuple of (players_affected, edges_affected) - the changes made
         """
         # Asegurar que ambos jugadores existen
         self.add_player(from_player_id)
@@ -113,6 +128,10 @@ class PassNetwork:
         
         from_player = self.players[from_player_id]
         to_player = self.players[to_player_id]
+        
+        # Track if this is a new pass count change (for edges)
+        from_player_old_pass_count = from_player.pass_count
+        to_player_old_received_count = to_player.passes_received
         
         # Actualizar pases dados y recibidos
         from_player.passes_given += 1
@@ -155,6 +174,10 @@ class PassNetwork:
             (to_player.avg_y_total * (total_passes_involved_to - 1) + end_y) / total_passes_involved_to
         )
         
+        # Rastrar cambios en jugadores
+        self.changed_players.add(from_player_id)
+        self.changed_players.add(to_player_id)
+        
         # Crear o actualizar la arista dirigida (usa x, y - posición de origen)
         edge_key = (from_player_id, to_player_id)
         if edge_key in self.edges:
@@ -164,6 +187,9 @@ class PassNetwork:
             edge.pass_count += 1
         else:
             self.edges[edge_key] = PassEdge(from_player_id, to_player_id, 1, x, y)
+        
+        # Rastrar cambios en aristas
+        self.changed_edges.add(edge_key)
     
     def get_nodes(self) -> List[Dict[str, Any]]:
         """Retorna lista de nodos con sus propiedades."""
@@ -172,6 +198,27 @@ class PassNetwork:
     def get_edges(self) -> List[Dict[str, Any]]:
         """Retorna lista de aristas con sus propiedades."""
         return [edge.to_dict() for edge in self.edges.values()]
+    
+    def get_changed_nodes(self) -> List[Dict[str, Any]]:
+        """Retorna solo los nodos que han cambiado desde la última actualización."""
+        return [
+            self.players[player_id].to_dict()
+            for player_id in self.changed_players
+            if player_id in self.players
+        ]
+    
+    def get_changed_edges(self) -> List[Dict[str, Any]]:
+        """Retorna solo las aristas que han cambiado desde la última actualización."""
+        return [
+            self.edges[edge_key].to_dict()
+            for edge_key in self.changed_edges
+            if edge_key in self.edges
+        ]
+    
+    def clear_changes(self) -> None:
+        """Limpia el registro de cambios incrementales."""
+        self.changed_players.clear()
+        self.changed_edges.clear()
     
     def get_player_info(self, player_id: str) -> Dict[str, Any]:
         """Obtiene información detallada de un jugador específico."""
@@ -253,6 +300,72 @@ class PassNetwork:
             "edges": self.get_edges(),
             "statistics": self.get_statistics(),
         }
+    
+    def add_passes_incremental(self, events: List[Dict[str, Any]]) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+        """
+        Procesa eventos de pase y devuelve solo los nodos y aristas que han cambiado.
+        
+        Rastrea qué eventos ya fueron procesados para evitar duplicados.
+        
+        Args:
+            events: Lista de eventos de pase (deben tener type_id='1', outcome='1' y player_receiver_id)
+        
+        Returns:
+            Tuple de (changed_nodes, changed_edges) - solo los que han cambiado en esta operación
+        """
+        # Limpiar cambios previos
+        self.clear_changes()
+        
+        passes_processed = 0
+        passes_skipped = 0
+        passes_with_receiver = 0
+        
+        for event in events:
+            # Solo procesar pases exitosos con receptor conocido
+            if event.get("type_id") != "1" or event.get("outcome") != "1":
+                continue
+            if not event.get("player_receiver_id"):
+                continue
+            
+            # Verificar si este evento ya fue procesado
+            event_id = event.get("event_id", "")
+            if event_id in self.processed_event_ids:
+                passes_skipped += 1
+                continue
+            
+            from_player_id = event.get("player_id", "")
+            if not from_player_id:
+                continue
+            
+            to_player_id = event.get("player_receiver_id", "")
+            if not to_player_id:
+                continue
+            
+            passes_processed += 1
+            passes_with_receiver += 1
+            
+            x = float(event.get("x", 0.0))
+            y = float(event.get("y", 0.0))
+            
+            # Extraer end_x, end_y de qualifiers
+            end_x, end_y = 0.0, 0.0
+            for qualifier in event.get("qualifiers", []):
+                if qualifier.get("qualifier_id") == "140":
+                    end_x = float(qualifier.get("value", 0.0))
+                elif qualifier.get("qualifier_id") == "141":
+                    end_y = float(qualifier.get("value", 0.0))
+            
+            # Añadir el pase a la red
+            self.add_pass(from_player_id, to_player_id, x, y, end_x, end_y)
+            
+            # Marcar evento como procesado
+            self.processed_event_ids.add(event_id)
+        
+        if passes_processed > 0 or passes_skipped > 0:
+            logger.debug(f"Procesados {passes_processed} eventos de pase nuevos, {passes_skipped} ya existentes")
+        
+        # Retornar solo los cambios
+        return self.get_changed_nodes(), self.get_changed_edges()
 
 
 def build_pass_network_from_events(

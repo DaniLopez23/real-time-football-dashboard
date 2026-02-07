@@ -18,7 +18,7 @@ BASE_PATH = Path(__file__).parent.parent
 EVENT_MAPPER = None
 QUALIFIER_MAPPER = None
 
-SIMULATED_DATA_FILE = BASE_PATH.parent.parent / "simulated-real-time-data" / "060226-00.xml"
+SIMULATED_DATA_FILE = BASE_PATH.parent.parent / "simulated-real-time-data" / "070226-00.xml"
     
 
 def _load_json_mapper(relative_path: str) -> Dict[str, Any]:
@@ -184,79 +184,46 @@ async def read_full_xml_async(file_path: str) -> Dict[str, Any]:
 
 
 def _process_pass_events_for_network(
-    events: List[Dict[str, Any]], 
+    enriched_events: List[Dict[str, Any]], 
     team_id: str
 ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
-    Procesa eventos de pase para una red específica y retorna nodos y aristas afectados.
+    Procesa eventos de pase enriquecidos para una red específica y retorna 
+    SOLO los nodos y aristas que han cambiado (incrementales).
+    
+    Esta función delega todo el cálculo y rastreo a PassNetwork.add_passes_incremental(),
+    que devuelve únicamente los cambios, no la estructura completa del grafo.
     
     Args:
-        events: Lista de eventos de pase (type_id='1') con player_receiver_id
-        team_id: ID del equipo
+        enriched_events: Lista de eventos de pase enriquecidos (con player_receiver_id calculado)
+        team_id: ID del equipo para filtrar
     
     Returns:
-        Tuple de (nodos_afectados, aristas_afectadas)
+        Tuple de (changed_nodes, changed_edges) - solo los que han cambiado
     """
     if team_id not in match_state.pass_networks:
         match_state.pass_networks[team_id] = PassNetwork(team_id=team_id)
     
     network = match_state.pass_networks[team_id]
-    affected_players = set()
-    affected_edges = set()
     
-    processed_count = 0
-    logger.info(f"Processing {len(events)} pass events for team {team_id} in network {network.team_id}")
-    for event in events:
-        # Solo procesar pases exitosos del equipo especificado
-        if event.get("type_id") != "1" or event.get("outcome") != "1":
-            continue
-        if event.get("team_id") != team_id:
-            continue
-            
-        from_player_id = event.get("player_id", "")
-        logger.info(f"Processing pass event {event.get('event_id')} from player {from_player_id} for team {team_id}")
-        to_player_id = event.get("player_receiver_id", "")
-        
-        if not from_player_id or not to_player_id:
-            continue
-        
-        x = float(event.get("x", 0.0))
-        y = float(event.get("y", 0.0))
-        
-        # Extraer end_x, end_y de qualifiers
-        end_x, end_y = 0.0, 0.0
-        for qualifier in event.get("qualifiers", []):
-            if qualifier.get("qualifier_id") == "140":
-                end_x = float(qualifier.get("value", 0.0))
-            elif qualifier.get("qualifier_id") == "141":
-                end_y = float(qualifier.get("value", 0.0))
-        
-        # Añadir a la red
-        network.add_pass(from_player_id, to_player_id, x, y, end_x, end_y)
-        processed_count += 1
-        
-        # Registrar elementos afectados
-        affected_players.add(from_player_id)
-        affected_players.add(to_player_id)
-        affected_edges.add((from_player_id, to_player_id))
-    
-    if processed_count > 0:
-        logger.debug(f"  ✅ Equipo {team_id}: {processed_count} pases, {len(affected_players)} jugadores, {len(affected_edges)} conexiones")
-    
-    # Extraer nodos y aristas afectados
-    nodes = [
-        network.players[player_id].to_dict() 
-        for player_id in affected_players 
-        if player_id in network.players
+    # Filtrar eventos de pase exitosos del equipo especificado con receptor conocido
+    team_pass_events = [
+        e for e in enriched_events
+        if e.get("type_id") == "1" 
+        and e.get("outcome") == "1"
+        and e.get("team_id") == team_id
+        and e.get("player_receiver_id")  # Solo pases con receptor conocido
     ]
     
-    edges = [
-        network.edges[edge_key].to_dict() 
-        for edge_key in affected_edges 
-        if edge_key in network.edges
-    ]
+    logger.debug(f"Procesando {len(team_pass_events)} eventos de pase para equipo {team_id}")
     
-    return nodes, edges
+    # Delegar al método incremental que devuelve solo los cambios
+    changed_nodes, changed_edges = network.add_passes_incremental(team_pass_events)
+    
+    if changed_nodes or changed_edges:
+        logger.debug(f"  ✅ Equipo {team_id}: {len(changed_nodes)} nodos actualizados, {len(changed_edges)} aristas actualizadas")
+    
+    return changed_nodes, changed_edges
 
 
 async def watch_simulated_real_time_data(
@@ -299,7 +266,7 @@ async def watch_simulated_real_time_data(
                 await asyncio.sleep(poll_interval)
                 continue
 
-            # Enriquecer eventos con receptores
+            # Enriquecer eventos con receptores (acumulativo)
             events = game.get("events", [])
             enriched_events = add_pass_receiver_info(events)
             
@@ -406,31 +373,35 @@ async def watch_simulated_real_time_data(
                     "events": updated_events,
                 })
             
-            # Calcular redes de pases para eventos nuevos/actualizados de tipo pase
-            pass_events = [
-                e for e in (new_events + updated_events)
-                if e.get("type_id") == "1" 
-                and e.get("outcome") == "1"
-                and e.get("player_receiver_id")  # Solo pases con receptor conocido
-            ]
-            
-            if pass_events:
-                # Agrupar por equipo
-                teams = set(e.get("team_id") for e in pass_events if e.get("team_id"))
-                logger.info(f"🎮 Procesando {len(pass_events)} eventos de pase para equipos: {', '.join(teams)}")
-                for team_id in teams:
-                    team_pass_events = [e for e in pass_events if e.get("team_id") == team_id]
-                    nodes, edges = _process_pass_events_for_network(team_pass_events, team_id)
-                    logger.info(f"🎮 Procesados {len(team_pass_events)} eventos de pase para equipo {team_id}: {len(nodes)} nodos, {len(edges)} aristas")
-                    if nodes or edges:
-                        updates.append({
-                            "type": "new_pass_network_elements" if any(e in new_events for e in team_pass_events) else "update_pass_network_elements",
-                            "game_id": game_id,
-                            "team_id": team_id,
-                            "nodes": nodes,
-                            "edges": edges,
-                            "statistics": match_state.pass_networks[team_id].get_statistics() if team_id in match_state.pass_networks else {},
-                        })
+            # Calcular redes de pases con TODOS los eventos enriquecidos
+            # La red de pases rastrea qué eventos ya procesó para evitar duplicados
+            if new_events or updated_events:
+                # Filtrar todos los eventos de pase exitosos con receptor
+                all_pass_events = [
+                    e for e in enriched_events
+                    if e.get("type_id") == "1" 
+                    and e.get("outcome") == "1"
+                    and e.get("player_receiver_id")  # Solo pases con receptor conocido
+                ]
+                
+                if all_pass_events:
+                    # Agrupar por equipo
+                    teams = set(e.get("team_id") for e in all_pass_events if e.get("team_id"))
+                    
+                    for team_id in teams:
+                        # Pasar TODOS los eventos del equipo (la red filtra duplicados internamente)
+                        nodes, edges = _process_pass_events_for_network(enriched_events, team_id)
+                        
+                        if nodes or edges:
+                            logger.info(f"🎮 Equipo {team_id}: {len(nodes)} nodos actualizados, {len(edges)} aristas actualizadas")
+                            updates.append({
+                                "type": "new_pass_network_elements" if new_events else "update_pass_network_elements",
+                                "game_id": game_id,
+                                "team_id": team_id,
+                                "nodes": nodes,
+                                "edges": edges,
+                                "statistics": match_state.pass_networks[team_id].get_statistics() if team_id in match_state.pass_networks else {},
+                            })
             
             # Enviar actualizaciones
             if updates and on_new_data:
