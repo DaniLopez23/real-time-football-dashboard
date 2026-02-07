@@ -4,6 +4,7 @@ import NetworkPassPitch from "@/components/Pitch/PassNetworkPitch";
 import PassNetworkTabs from "@/components/Pitch/PassNetworkTabs";
 import ConnectionStatusBar from "@/components/ConnectionStatusBar";
 import { useWebSocket, type WebSocketStatus } from "@/hooks/useWebSocket";
+import EventPitch from "@/components/Pitch/EventPitch";
 
 interface GameInfo {
   id: string;
@@ -26,10 +27,6 @@ const DashboardLayout: React.FC = () => {
     url: 'ws://localhost:8000',
     gameId: selectedGame.id,
     onStatusChange: setWsStatus,
-    onMessage: (data) => {
-      console.log('Mensaje WebSocket recibido:', data);
-      // Aquí puedes procesar los mensajes del backend
-    },
   });
 
   return (
@@ -70,7 +67,7 @@ const DashboardLayout: React.FC = () => {
               Campograma de eventos
             </h2>
             <div className="flex-1 min-h-0">
-              <OptaPitch width={550} height={400} />
+              <EventPitch width={550} height={400} />
             </div>
           </div>
 

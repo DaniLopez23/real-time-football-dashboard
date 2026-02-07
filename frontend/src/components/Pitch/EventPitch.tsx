@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import * as d3 from "d3";
 import OptaPitch from "./OptaPitch";
 import { PassArrow, CarryArrow, ShotArrow } from "./EventFigures";
-import { Card } from "@/components/ui/card";
+import { useEventsStore } from "@/store";
 
 interface EventPitchProps {
   width?: number;
@@ -21,6 +21,7 @@ const EventPitch: React.FC<EventPitchProps> = ({
 
     return { xScale, yScale };
   }, [width, height]);
+
 
   // Ejemplo de cadena de pases y tiro
   const exampleEvents = [

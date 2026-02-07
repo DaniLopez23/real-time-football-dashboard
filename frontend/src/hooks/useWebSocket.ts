@@ -1,4 +1,21 @@
+/**
+ * Hook useWebSocket con sincronización automática de stores
+ * 
+ * Este hook gestiona la conexión WebSocket al backend y automáticamente sincroniza
+ * los stores de Zustand (Game, Events, PassNetwork) cuando llegan mensajes.
+ * 
+ * Características:
+ * - ✅ Sincronización automática de stores (no necesitas hacer nada más)
+ * - ✅ Reconexión automática con backoff exponencial
+ * - ✅ Heartbeat cada 30 segundos para mantener la conexión
+ * - ✅ Manejo de estados: connecting, connected, disconnected, error
+ * - ✅ Callbacks opcionales para procesamiento adicional
+ * 
+ */
+
 import { useEffect, useRef, useCallback, useState } from 'react';
+import { useWebSocketSync } from '@/store/useWebSocketSync';
+import type { WebSocketUpdateMessage } from '@/types';
 
 export type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
@@ -15,12 +32,16 @@ interface WebSocketWithHeartbeat extends WebSocket {
 
 export const useWebSocket = ({ url, gameId, onMessage, onStatusChange }: UseWebSocketOptions) => {
   const [status, setStatus] = useState<WebSocketStatus>('disconnected');
+  const [lastMessage, setLastMessage] = useState<WebSocketUpdateMessage | null>(null);
   const wsRef = useRef<WebSocketWithHeartbeat | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const isManuallyClosedRef = useRef(false);
   const maxReconnectAttempts = 5;
   const reconnectDelay = 3000; // 3 segundos
+
+  // Sincronizar stores automáticamente cuando llegan mensajes
+  useWebSocketSync(lastMessage);
 
   // Actualizar estado
   const updateStatus = useCallback((newStatus: WebSocketStatus) => {
@@ -73,6 +94,23 @@ export const useWebSocket = ({ url, gameId, onMessage, onStatusChange }: UseWebS
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          
+          // Actualizar el último mensaje para sincronizar stores
+          // Solo procesar mensajes del backend (ignorar pongs, conexiones, etc.)
+          const validTypes = [
+            'new_game',
+            'game_updates',
+            'new_events',
+            'events_updates',
+            'new_pass_network_elements',
+            'update_pass_network_elements'
+          ];
+          
+          if (validTypes.includes(data.type)) {
+            setLastMessage(data as WebSocketUpdateMessage);
+          }
+          
+          // Mantener compatibilidad con el callback onMessage
           onMessage?.(data);
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -133,6 +171,8 @@ export const useWebSocket = ({ url, gameId, onMessage, onStatusChange }: UseWebS
       wsRef.current = null;
     }
 
+    // Limpiar el último mensaje
+    setLastMessage(null);
     updateStatus('disconnected');
   }, [updateStatus]);
 
@@ -158,6 +198,7 @@ export const useWebSocket = ({ url, gameId, onMessage, onStatusChange }: UseWebS
 
   return {
     status,
+    lastMessage,
     send,
     connect,
     disconnect,
