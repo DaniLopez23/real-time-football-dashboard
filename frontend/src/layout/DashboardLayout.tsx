@@ -59,12 +59,7 @@ const DashboardLayout: React.FC = () => {
         <div className="grid grid-cols-2 gap-2 min-h-[55vh]">
           {/* Columna 1 - Mitad */}
           <div className="bg-slate-900 rounded-lg border border-slate-800 p-4 flex flex-col">
-            <h2 className="text-white text-sm font-semibold mb-2 flex-shrink-0">
-              Campograma de eventos
-            </h2>
-            <div className="flex-1 min-h-0">
-              <EventPitch width={550} height={400} />
-            </div>
+            <EventPitch width={550} height={400} />
           </div>
 
           {/* Columna 2 - Mitad con 2 filas internas */}
