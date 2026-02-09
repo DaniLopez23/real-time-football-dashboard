@@ -1,15 +1,10 @@
 import React from 'react';
-import { type WebSocketStatus } from '@/hooks/useWebSocket';
+import type { WebSocketStatus, GameData } from '@/types';
 import { CheckCircle2, CircleDot, AlertCircle, Circle } from 'lucide-react';
 
 interface ConnectionStatusBarProps {
   status: WebSocketStatus;
-  selectedGame?: {
-    id: string;
-    name: string;
-    homeTeam: string;
-    awayTeam: string;
-  };
+  selectedGame?: GameData | null;
 }
 
 const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({ status, selectedGame }) => {
@@ -65,9 +60,9 @@ const ConnectionStatusBar: React.FC<ConnectionStatusBarProps> = ({ status, selec
               <div className="text-white font-semibold text-sm">
                 <div className="text-xs text-slate-300 mb-1">Partido seleccionado</div>
                 <div className="flex items-center gap-2">
-                  <span>{selectedGame.homeTeam}</span>
+                  <span>{selectedGame.home_team.team_name}</span>
                   <span className="text-slate-400">vs</span>
-                  <span>{selectedGame.awayTeam}</span>
+                  <span>{selectedGame.away_team.team_name}</span>
                 </div>
               </div>
             </div>
