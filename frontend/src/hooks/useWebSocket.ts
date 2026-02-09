@@ -15,9 +15,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useWebSocketSync } from '@/store/useWebSocketSync';
-import type { WebSocketUpdateMessage } from '@/types';
-
-export type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+import type { WebSocketUpdateMessage, WebSocketStatus } from '@/types';
 
 interface UseWebSocketOptions {
   url: string;
@@ -103,7 +101,8 @@ export const useWebSocket = ({ url, gameId, onMessage, onStatusChange }: UseWebS
             'new_events',
             'events_updates',
             'new_pass_network_elements',
-            'update_pass_network_elements'
+            'update_pass_network_elements',
+            "match_state_snapshot"
           ];
           
           if (validTypes.includes(data.type)) {

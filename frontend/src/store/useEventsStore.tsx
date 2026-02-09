@@ -1,32 +1,5 @@
 import { create } from 'zustand';
-import type { Event } from '@/api/events';
-
-/**
- * Estado del store de eventos del partido
- */
-interface EventsState {
-  // Todos los eventos del partido
-  events: Event[];
-  
-  // Último evento procesado
-  lastEventId: string | null;
-  
-  // Estado de carga
-  loading: boolean;
-  error: string | null;
-  
-  // Acciones
-  setEvents: (events: Event[]) => void;
-  addEvents: (events: Event[]) => void;
-  updateEvents: (events: Event[]) => void;
-  getEventById: (eventId: string) => Event | undefined;
-  getEventsByTeam: (teamId: string) => Event[];
-  getEventsByType: (typeId: string) => Event[];
-  getEventsByPlayer: (playerId: string) => Event[];
-  clearEvents: () => void;
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-}
+import type { EventsState } from '@/types';
 
 /**
  * Store de Zustand para gestionar los eventos del partido

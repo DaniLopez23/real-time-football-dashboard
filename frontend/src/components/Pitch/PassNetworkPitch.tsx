@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import OptaPitch from './OptaPitch'
-import cytoscape from 'cytoscape'
-import type { PassNetwork } from '@/api/events'
-import { getPassNetworkByTeam } from '@/api/events'
+import cytoscape, { type Core } from 'cytoscape'
+import { usePassNetworkStore } from '@/store'
 
 interface NetworkPassPitchProps {
   teamId: string
@@ -11,33 +10,19 @@ interface NetworkPassPitchProps {
 }
 
 const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800, height = 600 }) => {
-  const [data, setData] = useState<PassNetwork | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null)
   
   const containerRef = useRef<HTMLDivElement>(null)
-  const cyRef = useRef<cytoscape.Core | null>(null)
+  const cyRef = useRef<Core | null>(null)
 
+  // Obtener red de pases del store en tiempo real
+  const network = usePassNetworkStore((state) => state.getNetwork(teamId))
+
+  // Inicializar y actualizar Cytoscape cuando el store cambia
   useEffect(() => {
-    const fetchPassNetwork = async () => {
-      try {
-        setLoading(true)
-        const networkData = await getPassNetworkByTeam(teamId)
-        setData(networkData)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error desconocido')
-      } finally {
-        setLoading(false)
-      }
+    if (!network || !containerRef.current || network.nodes.length === 0) {
+      return
     }
-
-    fetchPassNetwork()
-  }, [teamId])
-
-  // Inicializar Cytoscape cuando tengamos datos
-  useEffect(() => {
-    if (!data || !containerRef.current || data.nodes.length === 0) return
 
     // Limpiar instancia anterior
     if (cyRef.current) {
@@ -45,9 +30,8 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
     }
 
     // Calcular escalas para ancho y opacidad de aristas
-    const maxPassCount = Math.max(...data.edges.map(e => e.pass_count), 1)
-    const minPassCount = Math.min(...data.edges.map(e => e.pass_count), 0)
-    const maxNodePassCount = Math.max(...data.nodes.map(n => n.pass_count), 1)
+    const maxPassCount = Math.max(...network.edges.map(e => e.pass_count), 1)
+    const maxNodePassCount = Math.max(...network.nodes.map(n => n.pass_count), 1)
 
     // Convertir coordenadas Opta (0-100) a píxeles del contenedor
     // OptaPitch usa escalas lineales directas: domain [0, 100] -> range [0, width] y [height, 0]
@@ -55,7 +39,7 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
     const projectY = (y: number) => height - (y / 100) * height // Invertir Y
 
     // Preparar nodos
-    const nodes = data.nodes.map(node => {
+    const nodes = network.nodes.map(node => {
       const pixelX = projectX(node.avg_position_total.x)
       const pixelY = projectY(node.avg_position_total.y)
       
@@ -77,7 +61,7 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
     })
 
     // Preparar aristas
-    const edges = data.edges.map((edge, i) => ({
+    const edges = network.edges.map((edge, i) => ({
       data: {
         id: `edge-${i}`,
         source: edge.from_player_id,
@@ -94,6 +78,8 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
       layout: {
         name: 'preset' // Usar posiciones predefinidas
       },
+      // Renderizar a mayor resolución para evitar pixelación
+      pixelRatio: 2, // o 'auto' para usar el pixelRatio del dispositivo
       style: [
         {
           selector: 'node',
@@ -101,13 +87,13 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
             'background-color': '#ffffff',
             'border-color': '#1e40af',
             'border-width': 1.5,
-            'width': (ele) => {
+            'width': (ele: cytoscape.NodeSingular) => {
               const passCount = ele.data('passCount')
-              return Math.sqrt(passCount / maxNodePassCount) * 15 + 8
+              return Math.sqrt(passCount / maxNodePassCount) * 10 + 8
             },
-            'height': (ele) => {
+            'height': (ele: cytoscape.NodeSingular) => {
               const passCount = ele.data('passCount')
-              return Math.sqrt(passCount / maxNodePassCount) * 15 + 8
+              return Math.sqrt(passCount / maxNodePassCount) * 10 + 8
             },
             'label': 'data(label)',
             'font-size': '9px',
@@ -127,7 +113,7 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
         {
           selector: 'edge',
           style: {
-            'width': (ele) => {
+            'width': (ele: cytoscape.EdgeSingular) => {
               const passCount = ele.data('passCount')
               return Math.sqrt(passCount / maxPassCount) * 5 + 0.3
             },
@@ -137,11 +123,11 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
             'curve-style': 'unbundled-bezier',
             'control-point-distances': 15,
             'control-point-weights': 0.5,
-            'opacity': (ele) => {
+            'opacity': (ele: cytoscape.EdgeSingular) => {
               const passCount = ele.data('passCount')
               return 0.15 + (passCount / maxPassCount) * 0.85
             },
-            'arrow-scale': 1
+            'arrow-scale': 0.85
           }
         },
         {
@@ -149,9 +135,9 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
           style: {
             'line-color': '#3b82f6',
             'target-arrow-color': '#3b82f6',
-            'width': (ele) => {
+            'width': (ele: cytoscape.EdgeSingular) => {
               const passCount = ele.data('passCount')
-              return Math.sqrt(passCount / maxPassCount) * 5 + 2
+              return Math.sqrt(passCount / maxPassCount) * 3 + 2
             }
           }
         },
@@ -162,15 +148,15 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
           }
         }
       ],
-      userZoomingEnabled: false,
-      userPanningEnabled: false,
+      userZoomingEnabled: false,  // Permitir zoom con rueda del ratón
+      userPanningEnabled: false,  // Permitir pan arrastrando
       boxSelectionEnabled: false,
       autoungrabify: true,
       // Configurar el zoom y pan para que coincida exactamente con el área del canvas
       zoom: 1,
       pan: { x: 0, y: 0 },
-      minZoom: 1,
-      maxZoom: 1
+      minZoom: 0.5,  // Permitir zoom out
+      maxZoom: 3     // Permitir zoom in
     })
 
     // Establecer el viewport explícitamente
@@ -258,13 +244,9 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
         cyRef.current.destroy()
       }
     }
-  }, [data, width, height])
+  }, [network, width, height])
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-full text-white">Cargando red de pases…</div>
-  }
-
-  if (error || !data || data.nodes.length === 0) {
+  if (!network || network.nodes.length === 0) {
     return <div className="flex items-center justify-center h-full text-slate-400">No hay datos disponibles</div>
   }
 
@@ -293,7 +275,7 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
           style={{
             left: `${tooltip.x}px`,
             top: `${tooltip.y}px`,
-            transform: 'translate(-50%, 0)',
+            transform: 'translate(50%, 0)',
           }}
         >
           {tooltip.content}

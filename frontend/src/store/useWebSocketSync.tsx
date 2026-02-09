@@ -16,6 +16,7 @@ import type {
   NewEventsMessage,
   EventsUpdatesMessage,
   PassNetworkMessage,
+  MatchStateSnapshotMessage,
 } from '@/types';
 
 /**
@@ -59,6 +60,8 @@ export const useWebSocketSync = (message: WebSocketUpdateMessage | null) => {
         const msg = message as NewEventsMessage;
         console.log('📝 New Events:', msg.count, 'events');
         
+        
+
         // Agregar nuevos eventos
         addEvents(msg.events);
         break;
@@ -88,6 +91,32 @@ export const useWebSocketSync = (message: WebSocketUpdateMessage | null) => {
         
         // Actualizar elementos existentes de la red de pases
         updateNetworkElements(msg.team_id, msg.nodes, msg.edges, msg.statistics);
+        break;
+      }
+
+      case 'match_state_snapshot': {
+        const msg = message as MatchStateSnapshotMessage;
+        console.log('📸 Match State Snapshot:', msg.game_id, '-', msg.total_events, 'events,', Object.keys(msg.pass_networks).length, 'teams');
+        
+        // Resetear todos los stores
+        clearGame();
+        clearEvents();
+        clearAllNetworks();
+        
+        // Establecer nuevo juego
+        setGame(msg.game);
+        
+        // Cargar todos los eventos del snapshot
+        if (msg.events.length > 0) {
+          addEvents(msg.events);
+        }
+        
+        // Cargar todas las redes de pases del snapshot
+        Object.entries(msg.pass_networks).forEach(([teamId, networkData]) => {
+          console.log(`  ▶️  Team ${teamId}: ${networkData.nodes.length} nodes, ${networkData.edges.length} edges`);
+          updateNetworkElements(teamId, networkData.nodes, networkData.edges, networkData.statistics);
+        });
+        
         break;
       }
 
@@ -157,6 +186,24 @@ export const useWebSocketBatchSync = (messages: WebSocketUpdateMessage[] | null)
           const msg = message as PassNetworkMessage;
           console.log('  🔄 Update Pass Network Elements:', msg.team_id);
           updateNetworkElements(msg.team_id, msg.nodes, msg.edges, msg.statistics);
+          break;
+        }
+
+        case 'match_state_snapshot': {
+          const msg = message as MatchStateSnapshotMessage;
+          console.log('  📸 Match State Snapshot:', msg.game_id);
+          clearGame();
+          clearEvents();
+          clearAllNetworks();
+          setGame(msg.game);
+          
+          if (msg.events.length > 0) {
+            addEvents(msg.events);
+          }
+          
+          Object.entries(msg.pass_networks).forEach(([teamId, networkData]) => {
+            updateNetworkElements(teamId, networkData.nodes, networkData.edges, networkData.statistics);
+          });
           break;
         }
       }

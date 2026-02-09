@@ -1,37 +1,5 @@
 import { create } from 'zustand';
-import type { PassNetworkNode, PassNetworkEdge, PassNetworkStatistics } from '@/api/events';
-
-/**
- * Red de pases de un equipo
- */
-interface TeamPassNetwork {
-  nodes: PassNetworkNode[];
-  edges: PassNetworkEdge[];
-  statistics: PassNetworkStatistics;
-}
-
-/**
- * Estado del store de redes de pases
- */
-interface PassNetworkState {
-  // Redes de pases por equipo (key: team_id)
-  networks: Record<string, TeamPassNetwork>;
-  
-  // Acciones
-  setNetwork: (teamId: string, network: TeamPassNetwork) => void;
-  updateNodes: (teamId: string, nodes: PassNetworkNode[]) => void;
-  updateEdges: (teamId: string, edges: PassNetworkEdge[]) => void;
-  updateStatistics: (teamId: string, statistics: PassNetworkStatistics) => void;
-  updateNetworkElements: (
-    teamId: string,
-    nodes: PassNetworkNode[],
-    edges: PassNetworkEdge[],
-    statistics?: PassNetworkStatistics
-  ) => void;
-  getNetwork: (teamId: string) => TeamPassNetwork | undefined;
-  clearNetwork: (teamId: string) => void;
-  clearAllNetworks: () => void;
-}
+import type { PassNetworkState } from '@/types';
 
 /**
  * Store de Zustand para gestionar las redes de pases de equipos

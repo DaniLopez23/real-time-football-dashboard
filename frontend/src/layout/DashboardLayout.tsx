@@ -5,28 +5,24 @@ import PassNetworkTabs from "@/components/Pitch/PassNetworkTabs";
 import ConnectionStatusBar from "@/components/ConnectionStatusBar";
 import { useWebSocket, type WebSocketStatus } from "@/hooks/useWebSocket";
 import EventPitch from "@/components/Pitch/EventPitch";
+import { useGameStore } from "@/store";
 
-interface GameInfo {
-  id: string;
-  name: string;
-  homeTeam: string;
-  awayTeam: string;
-}
+
+const INITIAL_GAME_ID = "2372222";
 
 const DashboardLayout: React.FC = () => {
   const [wsStatus, setWsStatus] = useState<WebSocketStatus>('disconnected');
-  const [selectedGame] = useState<GameInfo>({
-    id: '2372222',
-    name: 'Partido de prueba',
-    homeTeam: 'Equipo A',
-    awayTeam: 'Equipo B',
-  });
-
+  const selectedGame = useGameStore((state) => state.game);
+  console.log('Partido seleccionado en DashboardLayout:', selectedGame);
   // Configurar WebSocket
   useWebSocket({
     url: 'ws://localhost:8000',
-    gameId: selectedGame.id,
+    gameId: INITIAL_GAME_ID,
     onStatusChange: setWsStatus,
+    onMessage: (data) => {
+        // Solo loguear mensajes relevantes para evitar ruido
+        console.log('Mensaje WebSocket recibido:', data); 
+    }
   });
 
   return (
