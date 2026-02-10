@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import OptaPitch from "@/components/Pitch/OptaPitch";
 import NetworkPassPitch from "@/components/Pitch/PassNetworkPitch";
 import PassNetworkTabs from "@/components/Pitch/PassNetworkTabs";
-import ConnectionStatusBar from "@/components/ConnectionStatusBar";
+import MatchStatusPanel from "@/components/MatchStatusPanel";
 import { useWebSocket, type WebSocketStatus } from "@/hooks/useWebSocket";
 import EventPitch from "@/components/Pitch/EventPitch";
 import { useGameStore } from "@/store";
@@ -29,11 +29,6 @@ const DashboardLayout: React.FC = () => {
     <div className="h-screen w-full bg-slate-950">
       {/* Grid Container */}
       <div className="h-full flex flex-col p-4 gap-2 overflow-auto">
-        {/* Fila 0: Estado de conexión y partido seleccionado */}
-        <div className="flex-shrink-0">
-          <ConnectionStatusBar status={wsStatus} selectedGame={selectedGame} />
-        </div>
-
         {/* Fila 1: 3 columnas - 40% de altura */}
         <div className="grid grid-cols-12 gap-2 min-h-[40vh]">
           {/* Columna 1 - Grande */}
@@ -44,8 +39,7 @@ const DashboardLayout: React.FC = () => {
 
           {/* Columna 2 - Pequeña */}
           <div className="col-span-4 bg-slate-900 rounded-lg border border-slate-800 p-4">
-            <h2 className="text-white text-lg font-semibold mb-2">Panel 2</h2>
-            <p className="text-slate-400">Contenido de la segunda columna</p>
+            <MatchStatusPanel status={wsStatus} selectedGame={selectedGame} />
           </div>
 
           {/* Columna 3 - Grande */}

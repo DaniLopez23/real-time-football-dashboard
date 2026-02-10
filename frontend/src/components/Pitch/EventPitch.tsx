@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
 import * as d3 from "d3";
 import OptaPitch from "./OptaPitch";
-import { PassArrow } from "./EventFigures";
+import { PassArrow, OutFigure } from "./EventFigures";
 import { useEventsStore } from "@/store";
 import type { Event } from "@/types";
+import { EVENT_TYPES, EVENT_OUTCOMES, EVENT_QUALIFIERS } from "@/constants";
 import EventWindowSelector from "./EventWindowSelector";
 
 interface EventPitchProps {
@@ -12,9 +13,9 @@ interface EventPitchProps {
 }
 
 interface ProcessedEvent {
-  type: 'pass' | 'carry' | 'shot';
+  type: 'pass' | 'carry' | 'shot' | 'out';
   origin: { x: number; y: number };
-  destination: { x: number; y: number };
+  destination?: { x: number; y: number };
   result: 'success' | 'fail' | 'goal';
   source: Event;
 }
@@ -36,35 +37,53 @@ const EventPitch: React.FC<EventPitchProps> = ({
   // Obtener eventos del store y procesarlos
   const processedEvents = useMemo(() => {
     
-    // Filtrar solo pases (type_id = '1')
-    const passEvents = events
-      .filter(e => e.type_id === '1')
+    // Filtrar pases y eventos out
+    const filteredEvents = events
+      .filter(e => e.type_id === EVENT_TYPES.PASS || e.type_id === EVENT_TYPES.OUT)
       .slice(-windowSize);
 
-    return passEvents.map((event: Event): ProcessedEvent => {
+    return filteredEvents.map((event: Event): ProcessedEvent => {
       // Extraer coordenadas de inicio
-      const originX = parseFloat(event.x);
-      const originY = parseFloat(event.y);
+      let originX = parseFloat(event.x);
+      let originY = parseFloat(event.y);
 
-      // Extraer coordenadas de fin desde los qualifiers (140=end_x, 141=end_y)
-      let endX = originX;
-      let endY = originY;
-      
-      if (event.qualifiers && event.qualifiers.length > 0) {
-        const endXQualifier = event.qualifiers.find(q => q.qualifier_id === '140');
-        const endYQualifier = event.qualifiers.find(q => q.qualifier_id === '141');
+      // Si es un pase, extraer coordenadas de fin
+      if (event.type_id === EVENT_TYPES.PASS) {
+        let endX = originX;
+        let endY = originY;
         
-        if (endXQualifier) endX = parseFloat(endXQualifier.value);
-        if (endYQualifier) endY = parseFloat(endYQualifier.value);
-      }
+        if (event.qualifiers && event.qualifiers.length > 0) {
+          const endXQualifier = event.qualifiers.find(q => q.qualifier_id === EVENT_QUALIFIERS.PASS_END_X);
+          const endYQualifier = event.qualifiers.find(q => q.qualifier_id === EVENT_QUALIFIERS.PASS_END_Y);
+          
+          if (endXQualifier) endX = parseFloat(endXQualifier.value);
+          if (endYQualifier) endY = parseFloat(endYQualifier.value);
+        }
 
-      return {
-        type: 'pass',
-        origin: { x: originX, y: originY },
-        destination: { x: endX, y: endY },
-        result: event.outcome === '1' ? 'success' : 'fail',
-        source: event,
-      };
+        return {
+          type: 'pass',
+          origin: { x: originX, y: originY },
+          destination: { x: endX, y: endY },
+          result: event.outcome === EVENT_OUTCOMES.SUCCESS ? 'success' : 'fail',
+          source: event,
+        };
+      } else {
+        // Es un evento Out - ajustar coordenadas para que se vean dentro del campo
+        // Si está en el borde o muy cerca, moverlo hacia adentro
+        const margin = 3; // Margen para empujar hacia adentro
+        
+        if (originX <= margin) originX = margin;
+        if (originX >= 100 - margin) originX = 100 - margin;
+        if (originY <= margin) originY = margin;
+        if (originY >= 100 - margin) originY = 100 - margin;
+        
+        return {
+          type: 'out',
+          origin: { x: originX, y: originY },
+          result: 'fail',
+          source: event,
+        };
+      }
     });
   }, [events, windowSize]);
 
@@ -82,18 +101,36 @@ const EventPitch: React.FC<EventPitchProps> = ({
 
       <OptaPitch width={width} height={height} showAxes={true}>
         <g className="events-layer">
-          {processedEvents.map((event, index) => (
-            <PassArrow
-              key={`${event.source.id}-${index}`}
-              xScale={xScale}
-              yScale={yScale}
-              origin={event.origin}
-              destination={event.destination}
-              result={event.result as 'success' | 'fail'}
-              animated={index === processedEvents.length - 1}
-              sequenceNumber={index + 1}
-            />
-          ))}
+          {processedEvents.map((event, index) => {
+            const isLast = index === processedEvents.length - 1;
+            
+            if (event.type === 'pass' && event.destination) {
+              return (
+                <PassArrow
+                  key={`${event.source.id}-${index}`}
+                  xScale={xScale}
+                  yScale={yScale}
+                  origin={event.origin}
+                  destination={event.destination}
+                  result={event.result as 'success' | 'fail'}
+                  animated={isLast}
+                  sequenceNumber={index + 1}
+                />
+              );
+            } else if (event.type === 'out') {
+              return (
+                <OutFigure
+                  key={`${event.source.id}-${index}`}
+                  xScale={xScale}
+                  yScale={yScale}
+                  position={event.origin}
+                  animated={isLast}
+                  sequenceNumber={index + 1}
+                />
+              );
+            }
+            return null;
+          })}
         </g>
       </OptaPitch>
 
