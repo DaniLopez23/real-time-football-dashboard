@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import OptaPitch from "@/components/Pitch/OptaPitch";
 import NetworkPassPitch from "@/components/Pitch/PassNetworkPitch";
-import PassNetworkTabs from "@/components/Pitch/PassNetworkTabs";
+import PassNetworkStats from "@/components/Pitch/PassNetworkStats";
 import MatchStatusPanel from "@/components/MatchStatusPanel";
 import { useWebSocket, type WebSocketStatus } from "@/hooks/useWebSocket";
 import EventPitch from "@/components/Pitch/EventPitch";
@@ -58,25 +57,37 @@ const DashboardLayout: React.FC = () => {
 
           {/* Columna 2 - Mitad con 2 filas internas */}
           <div className="grid grid-rows-2 gap-2">
-            {/* Subfila 1 */}
+            {/* Subfila 1 - Equipo A */}
             <div className="bg-slate-900 rounded-lg border border-slate-800 overflow-hidden flex min-h-0">
-              <div className="flex-shrink-0 p-4">
-                <div className="text-white text-sm font-semibold mb-2">Red de pases equipo: A</div>
-                <NetworkPassPitch teamId="1564" width={350} height={200} />
-              </div>
-              <div className="flex-1 min-w-0 bg-slate-800/30 border-l-2 border-slate-700 flex">
-                <PassNetworkTabs teamId="1564" />
+              <div className="flex flex-1 min-w-0">
+                {/* Red de pases */}
+                <div className="flex-1 flex flex-col p-3">
+                  <div className="text-white text-xs font-semibold mb-1">Red de pases.{selectedGame?.home_team.team_name}</div>
+                  <div className="flex-1 flex items-center justify-center min-h-0">
+                    <NetworkPassPitch teamId="1564" width={300} height={170} />
+                  </div>
+                </div>
+                {/* Estadísticas */}
+                <div className="w-48 overflow-y-auto">
+                  <PassNetworkStats teamId="1564" />
+                </div>
               </div>
             </div>
 
-            {/* Subfila 2 */}
+            {/* Subfila 2 - Equipo B */}
             <div className="bg-slate-900 rounded-lg border border-slate-800 overflow-hidden flex min-h-0">
-              <div className="flex-shrink-0 p-4">
-                <div className="text-white text-sm font-semibold mb-2">Red de pases equipo: B</div>
-                <NetworkPassPitch teamId="184" width={350} height={200} />
-              </div>
-              <div className="flex-1 min-w-0 bg-slate-800/30 border-l-2 border-slate-700 flex">
-                <PassNetworkTabs teamId="184" />
+              <div className="flex flex-1 min-w-0">
+                {/* Red de pases */}
+                <div className="flex-1 flex flex-col p-3 ">
+                  <div className="text-white text-xs font-semibold mb-1">Red de pases. {selectedGame?.away_team.team_name}</div>
+                  <div className="flex-1 flex items-center justify-center min-h-0">
+                    <NetworkPassPitch teamId="184" width={300} height={170} />
+                  </div>
+                </div>
+                {/* Estadísticas */}
+                <div className="w-48 overflow-y-auto">
+                  <PassNetworkStats teamId="184" />
+                </div>
               </div>
             </div>
           </div>

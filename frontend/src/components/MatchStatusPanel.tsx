@@ -36,41 +36,43 @@ const MatchStatusPanel: React.FC<MatchStatusPanelProps> = ({
   return (
     <div className="h-full w-full flex flex-col justify-top gap-3">
       {selectedGame ? (
-        <div className="grid grid-cols-3 items-center text-center">
-          <div className="text-slate-200 text-lg font-semibold ">
-            {selectedGame.home_team.team_name}
+        <>
+          <div className="grid grid-cols-3 items-center text-center">
+            <div className="text-slate-200 text-lg font-semibold ">
+              {selectedGame.home_team.team_name}
+            </div>
+            <div className="text-white text-3xl font-extrabold">
+              <span className="text-emerald-300">
+                {selectedGame.home_team.score ?? "0"}
+              </span>{" "}
+              <span className="text-slate-400">:</span>{" "}
+              <span className="text-emerald-300">
+                {selectedGame.away_team.score ?? "0"}
+              </span>
+            </div>
+            <div className="text-slate-200 text-lg font-semibold ">
+              {selectedGame.away_team.team_name}
+            </div>
           </div>
-          <div className="text-white text-3xl font-extrabold">
-            <span className="text-emerald-300">
-              {selectedGame.home_team.score ?? "0"}
-            </span>{" "}
-            <span className="text-slate-400">:</span>{" "}
-            <span className="text-emerald-300">
-              {selectedGame.away_team.score ?? "0"}
+
+          <div className="flex items-center justify-center gap-3">
+            <span className="inline-flex items-center rounded-sm bg-gradient-to-r from-red-600 to-rose-500 px-3 py-1 text-xs font-semibold text-red-50 uppercase tracking-wider shadow-[0_0_10px_rgba(239,68,68,0.45)]">
+              LIVE
             </span>
+            <div
+              className={`h-8 w-8 rounded-full border flex items-center justify-center ${getStatusStyle()}`}
+              aria-label="Estado de conexion"
+              title={status}
+            >
+              {getStatusIcon()}
+            </div>
           </div>
-          <div className="text-slate-200 text-lg font-semibold ">
-            {selectedGame.away_team.team_name}
-          </div>
-        </div>
+        </>
       ) : (
-        <div className="text-slate-400 text-sm italic text-center">
+        <div className="text-slate-400 text-sm italic flex items-center justify-center h-full">
           No hay partido seleccionado
         </div>
       )}
-
-      <div className="flex items-center justify-center gap-3">
-        <span className="inline-flex items-center rounded-sm bg-gradient-to-r from-red-600 to-rose-500 px-3 py-1 text-xs font-semibold text-red-50 uppercase tracking-wider shadow-[0_0_10px_rgba(239,68,68,0.45)]">
-          LIVE
-        </span>
-        <div
-          className={`h-8 w-8 rounded-full border flex items-center justify-center ${getStatusStyle()}`}
-          aria-label="Estado de conexion"
-          title={status}
-        >
-          {getStatusIcon()}
-        </div>
-      </div>
     </div>
   );
 };

@@ -219,7 +219,7 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
       
       setTooltip({
         x: midX,
-        y: midY - 40,
+        y: midY - 20,
         content: (
           <div className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 shadow-xl">
             <div className="text-slate-200 text-xs font-semibold whitespace-nowrap">

@@ -11,6 +11,7 @@ interface PassArrowProps {
   strokeWidth?: number;
   animated?: boolean;
   sequenceNumber?: number;
+  isHomeTeam?: boolean;
 }
 
 const PassArrow: React.FC<PassArrowProps> = ({
@@ -22,6 +23,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
   strokeWidth = 2,
   animated = false,
   sequenceNumber,
+  isHomeTeam = true,
 }) => {
   const x1 = xScale(origin.x);
   const y1 = yScale(origin.y);
@@ -53,8 +55,12 @@ const PassArrow: React.FC<PassArrowProps> = ({
     ],
   ];
 
-  const color = result === 'success' ? '#4CAF50' : '#F44336';
-  const shadowColor = result === 'success' ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)';
+  // Color de la flecha según resultado
+  const arrowColor = result === 'success' ? '#4CAF50' : '#F44336';
+  const arrowShadowColor = result === 'success' ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)';
+  
+  // Color del número según equipo
+  const numberColor = isHomeTeam ? '#2196F3' : '#E53935'; // Azul para local, rojo para visitante
 
   return (
     <g className="pass-arrow">
@@ -64,7 +70,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
         y1={y1}
         x2={lineEndX}
         y2={lineEndY}
-        stroke={shadowColor}
+        stroke={arrowShadowColor}
         strokeWidth={strokeWidth + 2}
         strokeLinecap="round"
         initial={animated ? { opacity: 0, pathLength: 0 } : false}
@@ -78,7 +84,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
         y1={y1}
         x2={lineEndX}
         y2={lineEndY}
-        stroke={color}
+        stroke={arrowColor}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -95,12 +101,12 @@ const PassArrow: React.FC<PassArrowProps> = ({
       >
         <polygon
           points={arrowPoints.map(p => p.join(',')).join(' ')}
-          fill={shadowColor}
+          fill={arrowShadowColor}
           filter="drop-shadow(0 2px 4px rgba(0,0,0,0.2))"
         />
         <polygon
           points={arrowPoints.map(p => p.join(',')).join(' ')}
-          fill={color}
+          fill={arrowColor}
           opacity={0.95}
         />
       </motion.g>
@@ -110,7 +116,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
         cx={x1}
         cy={y1}
         r={2}
-        fill={color}
+        fill={arrowColor}
         opacity={0.7}
         initial={animated ? { opacity: 0, scale: 0 } : false}
         animate={{ 
@@ -142,7 +148,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
             cy={y1}
             r={6}
             fill="white"
-            stroke={color}
+            stroke={numberColor}
             strokeWidth={1.5}
             opacity={0.95}
           />
@@ -152,7 +158,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
             y={y1}
             textAnchor="middle"
             dominantBaseline="central"
-            fill={color}
+            fill={numberColor}
             fontSize="10"
             fontWeight="bold"
             fontFamily="sans-serif"

@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import * as d3 from "d3";
 import OptaPitch from "./OptaPitch";
 import { PassArrow, OutFigure } from "./EventFigures";
-import { useEventsStore } from "@/store";
+import { useEventsStore, useGameStore } from "@/store";
 import type { Event } from "@/types";
 import { EVENT_TYPES, EVENT_OUTCOMES, EVENT_QUALIFIERS } from "@/constants";
 import EventWindowSelector from "./EventWindowSelector";
@@ -26,6 +26,9 @@ const EventPitch: React.FC<EventPitchProps> = ({
 }) => {
   const [windowSize, setWindowSize] = useState(10);
   const events = useEventsStore((state) => state.events);
+  const game = useGameStore((state) => state.game);
+  
+  const homeTeamId = game?.home_team?.team_id;
   
   // Crear escalas para las coordenadas Opta
   const { xScale, yScale } = useMemo(() => {
@@ -115,6 +118,7 @@ const EventPitch: React.FC<EventPitchProps> = ({
                   result={event.result as 'success' | 'fail'}
                   animated={isLast}
                   sequenceNumber={index + 1}
+                  isHomeTeam={event.source.team_id === homeTeamId}
                 />
               );
             } else if (event.type === 'out') {
@@ -126,6 +130,7 @@ const EventPitch: React.FC<EventPitchProps> = ({
                   position={event.origin}
                   animated={isLast}
                   sequenceNumber={index + 1}
+                  isHomeTeam={event.source.team_id === homeTeamId}
                 />
               );
             }

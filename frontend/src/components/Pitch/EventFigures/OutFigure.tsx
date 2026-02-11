@@ -9,6 +9,7 @@ interface OutFigureProps {
   size?: number;
   animated?: boolean;
   sequenceNumber?: number;
+  isHomeTeam?: boolean;
 }
 
 const OutFigure: React.FC<OutFigureProps> = ({
@@ -18,11 +19,16 @@ const OutFigure: React.FC<OutFigureProps> = ({
   size = 16,
   animated = false,
   sequenceNumber,
+  isHomeTeam = true,
 }) => {
   const x = xScale(position.x);
   const y = yScale(position.y);
 
-  const color = '#1a1a1a'; // Negro
+  // Color del número según equipo
+  const numberColor = isHomeTeam ? '#2196F3' : '#E53935'; // Azul para local, rojo para visitante
+  
+  // Color de la flecha siempre negro para eventos Out
+  const color = '#1a1a1a';
   const shadowColor = 'rgba(0, 0, 0, 0.4)';
 
   // Determinar hacia qué borde está más cerca el evento
@@ -180,7 +186,7 @@ const OutFigure: React.FC<OutFigureProps> = ({
             cy={numberPos.y}
             r={6}
             fill="white"
-            stroke={color}
+            stroke={numberColor}
             strokeWidth={1.5}
             opacity={0.95}
           />
@@ -190,7 +196,7 @@ const OutFigure: React.FC<OutFigureProps> = ({
             y={numberPos.y}
             textAnchor="middle"
             dominantBaseline="central"
-            fill={color}
+            fill={numberColor}
             fontSize="10"
             fontWeight="bold"
             fontFamily="sans-serif"
