@@ -7,6 +7,7 @@ interface OptaPitchProps {
   showAxes?: boolean;
   fieldColor?: string;
   children?: React.ReactNode;
+  goalAreaWidth?: number;
 }
 
 const OptaPitch: React.FC<OptaPitchProps> = ({
@@ -15,6 +16,7 @@ const OptaPitch: React.FC<OptaPitchProps> = ({
   showAxes = false,
   fieldColor = "#2d5f3f",
   children,
+  goalAreaWidth = 8,
 }) => {
   const ref = useRef<SVGGElement>(null);
 
@@ -22,6 +24,9 @@ const OptaPitch: React.FC<OptaPitchProps> = ({
     if (!ref.current) return;
     const g = d3.select(ref.current);
     g.selectAll("*").remove();
+
+    // Obtener el SVG padre para dibujar las porterías
+    const svg = d3.select(ref.current.parentElement);
 
     // ===== Escalas Opta (0–100) → px =====
     const x = d3.scaleLinear().domain([0, 100]).range([0, width]);
@@ -82,6 +87,75 @@ const OptaPitch: React.FC<OptaPitchProps> = ({
         .attr("stroke-width", 2);
     };
 
+    // ===== PORTERÍAS =====
+    const goalY1 = y(55.3);
+    const goalY2 = y(44.7);
+    const goalHeight = goalY2 - goalY1;
+
+    // Portería izquierda
+    svg
+      .append("rect")
+      .attr("x", 0)
+      .attr("y", goalY1)
+      .attr("width", goalAreaWidth)
+      .attr("height", goalHeight)
+      .attr("fill", "none")
+      .attr("stroke", "white")
+      .attr("stroke-width", 1);
+    
+
+
+    // Larguero superior izquierdo
+    svg
+      .append("line")
+      .attr("x1", 0)
+      .attr("y1", goalY1)
+      .attr("x2", goalAreaWidth)
+      .attr("y2", goalY1)
+      .attr("stroke", "white")
+      .attr("stroke-width", 1);
+
+    // Larguero inferior izquierdo
+    svg
+      .append("line")
+      .attr("x1", 0)
+      .attr("y1", goalY1 + goalHeight)
+      .attr("x2", goalAreaWidth)
+      .attr("y2", goalY1 + goalHeight)
+      .attr("stroke", "white")
+      .attr("stroke-width", 2);
+
+    // Portería derecha
+    svg
+      .append("rect")
+      .attr("x", width + goalAreaWidth)
+      .attr("y", goalY1)
+      .attr("width", goalAreaWidth)
+      .attr("height", goalHeight)
+      .attr("fill", "none")
+      .attr("stroke", "white")
+      .attr("stroke-width", 2);
+
+    // Larguero superior derecho
+    svg
+      .append("line")
+      .attr("x1", width + goalAreaWidth)
+      .attr("y1", goalY1)
+      .attr("x2", width + 2 * goalAreaWidth)
+      .attr("y2", goalY1)
+      .attr("stroke", "white")
+      .attr("stroke-width", 2);
+
+    // Larguero inferior derecho
+    svg
+      .append("line")
+      .attr("x1", width + goalAreaWidth)
+      .attr("y1", goalY1 + goalHeight)
+      .attr("x2", width + 2 * goalAreaWidth)
+      .attr("y2", goalY1 + goalHeight)
+      .attr("stroke", "white")
+      .attr("stroke-width", 2);
+
     // ===== Campo =====
     g.append("rect")
       .attr("width", width)
@@ -109,9 +183,6 @@ const OptaPitch: React.FC<OptaPitchProps> = ({
     // Arcos del área (CORRECTOS)
     penaltyArc(16.5, 50, 9.15, "right");
     penaltyArc(83.5, 50, 9.15, "left");
-    // Porterías
-    rect(-2, 44.5, 2, 11);
-    rect(100, 44.5, 2, 11);
 
     // Ejes (opcional)
     if (showAxes) {
@@ -126,12 +197,12 @@ const OptaPitch: React.FC<OptaPitchProps> = ({
         .attr("color", "white")
         .attr("opacity", 0.4);
     }
-  }, [width, height, showAxes, fieldColor]);
+  }, [width, height, showAxes, fieldColor, goalAreaWidth]);
 
   return (
-    <svg width={width} height={height}>
-      <g ref={ref} />
-      <g>{children}</g>
+    <svg width={width + 2 * goalAreaWidth} height={height}>
+      <g ref={ref} transform={`translate(${goalAreaWidth},0)`} />
+      <g transform={`translate(${goalAreaWidth},0)`}>{children}</g>
     </svg>
   );
 };
