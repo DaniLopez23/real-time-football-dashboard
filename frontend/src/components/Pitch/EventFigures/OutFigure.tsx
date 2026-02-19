@@ -16,7 +16,6 @@ const OutFigure: React.FC<OutFigureProps> = ({
   xScale,
   yScale,
   position,
-  size = 16,
   animated = false,
   sequenceNumber,
   isHomeTeam = true,
@@ -27,9 +26,9 @@ const OutFigure: React.FC<OutFigureProps> = ({
   // Color del número según equipo
   const numberColor = isHomeTeam ? '#2196F3' : '#E53935'; // Azul para local, rojo para visitante
   
-  // Color de la flecha siempre negro para eventos Out
-  const color = '#1a1a1a';
-  const shadowColor = 'rgba(0, 0, 0, 0.4)';
+  // Color de la flecha según equipo
+  const color = isHomeTeam ? '#2196F3' : '#E53935'; // Azul para local, rojo para visitante
+  const shadowColor = isHomeTeam ? 'rgba(33, 150, 243, 0.4)' : 'rgba(229, 57, 53, 0.4)';
 
   // Determinar hacia qué borde está más cerca el evento
   const distanceToLeft = position.x;
@@ -150,7 +149,7 @@ const OutFigure: React.FC<OutFigureProps> = ({
         x2={lineEnd.x}
         y2={lineEnd.y}
         stroke={shadowColor}
-        strokeWidth={3}
+        strokeWidth={2}
         strokeLinecap="round"
         initial={animated ? { opacity: 0, scale: 0 } : false}
         animate={{ opacity: 0.5, scale: 1 }}
@@ -162,7 +161,7 @@ const OutFigure: React.FC<OutFigureProps> = ({
         x2={lineEnd.x}
         y2={lineEnd.y}
         stroke={color}
-        strokeWidth={2.5}
+        strokeWidth={2}
         strokeLinecap="round"
         initial={animated ? { opacity: 0, scale: 0 } : false}
         animate={{ opacity: 1, scale: 1 }}

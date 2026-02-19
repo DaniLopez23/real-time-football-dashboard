@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from "react";
 import * as d3 from "d3";
 import OptaPitch from "./OptaPitch";
-import { PassArrow, OutFigure } from "./EventFigures";
+import { PassArrow, OutFigure, CarryFigure } from "./EventFigures";
 import { useEventsStore, useGameStore } from "@/store";
 import type { Event } from "@/types";
 import { EVENT_TYPES, EVENT_OUTCOMES, EVENT_QUALIFIERS } from "@/constants";
-import EventWindowSelector from "./EventWindowSelector";
+import EventPitchOptions, { type EventPitchFilters } from "./EventPitchOptions";
 
 interface EventPitchProps {
   width?: number;
@@ -18,13 +18,18 @@ interface ProcessedEvent {
   destination?: { x: number; y: number };
   result: 'success' | 'fail' | 'goal';
   source: Event;
+  sequenceNumber?: number;
 }
 
 const EventPitch: React.FC<EventPitchProps> = ({
   width = 800,
   height = 600,
 }) => {
-  const [windowSize, setWindowSize] = useState(10);
+  const [filters, setFilters] = useState<EventPitchFilters>({
+    windowSize: 5,
+    teamFilter: 'both',
+  });
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const events = useEventsStore((state) => state.events);
   const game = useGameStore((state) => state.game);
   
@@ -39,70 +44,108 @@ const EventPitch: React.FC<EventPitchProps> = ({
 
   // Obtener eventos del store y procesarlos
   const processedEvents = useMemo(() => {
-    
-    // Filtrar pases y eventos out
-    const filteredEvents = events
-      .filter(e => e.type_id === EVENT_TYPES.PASS || e.type_id === EVENT_TYPES.OUT)
-      .slice(-windowSize);
+    let filteredEvents = events
+      .filter(e => e.type_id === EVENT_TYPES.PASS || e.type_id === EVENT_TYPES.OUT);
 
-    return filteredEvents.map((event: Event): ProcessedEvent => {
-      // Extraer coordenadas de inicio
+    // Filtrar por equipo
+    if (filters.teamFilter === 'home') {
+      filteredEvents = filteredEvents.filter(e => e.team_id === homeTeamId);
+    } else if (filters.teamFilter === 'away') {
+      filteredEvents = filteredEvents.filter(e => e.team_id !== homeTeamId);
+    }
+    
+    // Limitar al tamaño de ventana
+    filteredEvents = filteredEvents.slice(-filters.windowSize);
+
+    const getPassEnd = (event: Event, originX: number, originY: number) => {
+      let endX = originX;
+      let endY = originY;
+
+      if (event.qualifiers && event.qualifiers.length > 0) {
+        const endXQualifier = event.qualifiers.find(q => q.qualifier_id === EVENT_QUALIFIERS.PASS_END_X);
+        const endYQualifier = event.qualifiers.find(q => q.qualifier_id === EVENT_QUALIFIERS.PASS_END_Y);
+
+        if (endXQualifier) endX = parseFloat(endXQualifier.value);
+        if (endYQualifier) endY = parseFloat(endYQualifier.value);
+      }
+
+      return { endX, endY };
+    };
+
+    const processed: ProcessedEvent[] = [];
+
+    for (let i = 0; i < filteredEvents.length; i += 1) {
+      const event = filteredEvents[i];
+      const sequenceNumber = i + 1;
+
       let originX = parseFloat(event.x);
       let originY = parseFloat(event.y);
 
-      // Si es un pase, extraer coordenadas de fin
       if (event.type_id === EVENT_TYPES.PASS) {
-        let endX = originX;
-        let endY = originY;
-        
-        if (event.qualifiers && event.qualifiers.length > 0) {
-          const endXQualifier = event.qualifiers.find(q => q.qualifier_id === EVENT_QUALIFIERS.PASS_END_X);
-          const endYQualifier = event.qualifiers.find(q => q.qualifier_id === EVENT_QUALIFIERS.PASS_END_Y);
-          
-          if (endXQualifier) endX = parseFloat(endXQualifier.value);
-          if (endYQualifier) endY = parseFloat(endYQualifier.value);
-        }
+        const { endX, endY } = getPassEnd(event, originX, originY);
+        const passResult = event.outcome === EVENT_OUTCOMES.SUCCESS ? 'success' : 'fail';
 
-        return {
+        processed.push({
           type: 'pass',
           origin: { x: originX, y: originY },
           destination: { x: endX, y: endY },
-          result: event.outcome === EVENT_OUTCOMES.SUCCESS ? 'success' : 'fail',
+          result: passResult,
           source: event,
-        };
+          sequenceNumber,
+        });
+
+        const nextEvent = filteredEvents[i + 1];
+        if (
+          passResult === 'success' &&
+          nextEvent &&
+          nextEvent.type_id === EVENT_TYPES.PASS &&
+          nextEvent.team_id === event.team_id
+        ) {
+          const nextOriginX = parseFloat(nextEvent.x);
+          const nextOriginY = parseFloat(nextEvent.y);
+
+          processed.push({
+            type: 'carry',
+            origin: { x: endX, y: endY },
+            destination: { x: nextOriginX, y: nextOriginY },
+            result: 'success',
+            source: event,
+          });
+        }
       } else {
-        // Es un evento Out - ajustar coordenadas para que se vean dentro del campo
-        // Si está en el borde o muy cerca, moverlo hacia adentro
-        const margin = 3; // Margen para empujar hacia adentro
-        
+        const margin = 3;
+
         if (originX <= margin) originX = margin;
         if (originX >= 100 - margin) originX = 100 - margin;
         if (originY <= margin) originY = margin;
         if (originY >= 100 - margin) originY = 100 - margin;
-        
-        return {
+
+        processed.push({
           type: 'out',
           origin: { x: originX, y: originY },
           result: 'fail',
           source: event,
-        };
+          sequenceNumber,
+        });
       }
-    });
-  }, [events, windowSize]);
+    }
+
+    return processed;
+  }, [events, filters, homeTeamId]);
 
   return (
-    <div className="event-pitch-container h-full flex flex-col">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="event-pitch-container flex flex-col w-fit">
+      <div className="mb-4 flex items-center gap-2">
         <h2 className="text-white text-sm font-semibold">
           Campograma de eventos
         </h2>
-        <EventWindowSelector 
-          windowSize={windowSize} 
-          onWindowSizeChange={setWindowSize}
+        <EventPitchOptions 
+          filters={filters}
+          onFiltersChange={setFilters}
         />
       </div>
 
-      <OptaPitch width={width} height={height} showAxes={true}>
+      <OptaPitch width={width} height={height} showAxes={false}>
         <g className="events-layer">
           {processedEvents.map((event, index) => {
             const isLast = index === processedEvents.length - 1;
@@ -117,7 +160,19 @@ const EventPitch: React.FC<EventPitchProps> = ({
                   destination={event.destination}
                   result={event.result as 'success' | 'fail'}
                   animated={isLast}
-                  sequenceNumber={index + 1}
+                  sequenceNumber={event.sequenceNumber}
+                  isHomeTeam={event.source.team_id === homeTeamId}
+                />
+              );
+            } else if (event.type === 'carry' && event.destination) {
+              return (
+                <CarryFigure
+                  key={`carry-${event.source.id}-${index}`}
+                  xScale={xScale}
+                  yScale={yScale}
+                  origin={event.origin}
+                  destination={event.destination}
+                  animated={isLast}
                   isHomeTeam={event.source.team_id === homeTeamId}
                 />
               );
@@ -129,7 +184,7 @@ const EventPitch: React.FC<EventPitchProps> = ({
                   yScale={yScale}
                   position={event.origin}
                   animated={isLast}
-                  sequenceNumber={index + 1}
+                  sequenceNumber={event.sequenceNumber}
                   isHomeTeam={event.source.team_id === homeTeamId}
                 />
               );
@@ -139,8 +194,8 @@ const EventPitch: React.FC<EventPitchProps> = ({
         </g>
       </OptaPitch>
 
-      <div className="event-info mt-4 text-sm text-gray-600">
-        Mostrando {processedEvents.length} de {windowSize} eventos seleccionados
+      <div className="event-info mt-4 text-sm text-gray-400">
+        Mostrando {processedEvents.length} de {filters.windowSize} eventos
       </div>
     </div>
   );

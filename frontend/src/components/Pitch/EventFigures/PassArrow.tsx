@@ -34,13 +34,25 @@ const PassArrow: React.FC<PassArrowProps> = ({
   const angle = Math.atan2(y2 - y1, x2 - x1);
   const distance = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
   
+  // Tamaños proporcionales para marcador
+  const markerSize = Math.min(12, distance * 0.7);
+
   // Punta de flecha mejorada - más afilada y proporcional
-  const arrowLength = Math.min(12, distance * 0.7); // Proporcional a la distancia
+  const arrowLength = markerSize;
   const arrowWidth = arrowLength * 0.5; // Relación ideal
 
-  // Acortar la línea para que termine justo antes de la punta
-  const lineEndX = x2 - arrowLength * Math.cos(angle) * 0.8;
-  const lineEndY = y2 - arrowLength * Math.sin(angle) * 0.8;
+  const crossSize = Math.min(10, distance * 0.5);
+  const crossHalf = crossSize * 0.5;
+
+  // Acortar la línea según el marcador final
+  const lineEndX =
+    result === 'success'
+      ? x2 - arrowLength * Math.cos(angle) * 0.8
+      : x2 - crossHalf * Math.cos(angle);
+  const lineEndY =
+    result === 'success'
+      ? y2 - arrowLength * Math.sin(angle) * 0.8
+      : y2 - crossHalf * Math.sin(angle);
 
   // Puntos del triángulo más afilado
   const arrowPoints = [
@@ -55,9 +67,24 @@ const PassArrow: React.FC<PassArrowProps> = ({
     ],
   ];
 
-  // Color de la flecha según resultado
-  const arrowColor = result === 'success' ? '#4CAF50' : '#F44336';
-  const arrowShadowColor = result === 'success' ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)';
+  const crossAngle1 = angle + Math.PI / 4;
+  const crossAngle2 = angle - Math.PI / 4;
+  const crossLine1 = {
+    x1: x2 - crossHalf * Math.cos(crossAngle1),
+    y1: y2 - crossHalf * Math.sin(crossAngle1),
+    x2: x2 + crossHalf * Math.cos(crossAngle1),
+    y2: y2 + crossHalf * Math.sin(crossAngle1),
+  };
+  const crossLine2 = {
+    x1: x2 - crossHalf * Math.cos(crossAngle2),
+    y1: y2 - crossHalf * Math.sin(crossAngle2),
+    x2: x2 + crossHalf * Math.cos(crossAngle2),
+    y2: y2 + crossHalf * Math.sin(crossAngle2),
+  };
+
+  // Color del pase según equipo
+  const lineColor = isHomeTeam ? '#2196F3' : '#E53935';
+  const lineShadowColor = isHomeTeam ? 'rgba(33, 150, 243, 0.3)' : 'rgba(229, 57, 53, 0.3)';
   
   // Color del número según equipo
   const numberColor = isHomeTeam ? '#2196F3' : '#E53935'; // Azul para local, rojo para visitante
@@ -70,7 +97,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
         y1={y1}
         x2={lineEndX}
         y2={lineEndY}
-        stroke={arrowShadowColor}
+        stroke={lineShadowColor}
         strokeWidth={strokeWidth + 2}
         strokeLinecap="round"
         initial={animated ? { opacity: 0, pathLength: 0 } : false}
@@ -84,7 +111,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
         y1={y1}
         x2={lineEndX}
         y2={lineEndY}
-        stroke={arrowColor}
+        stroke={lineColor}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -93,30 +120,74 @@ const PassArrow: React.FC<PassArrowProps> = ({
         transition={animated ? { duration: 0.6, ease: 'easeOut', delay: 0.1 } : { duration: 0 }}
       />
       
-      {/* Punta de flecha mejorada con sombra */}
-      <motion.g
-        initial={animated ? { opacity: 0, scale: 0 } : false}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={animated ? { duration: 0.4, ease: 'backOut', delay: 0.5 } : { duration: 0 }}
-      >
-        <polygon
-          points={arrowPoints.map(p => p.join(',')).join(' ')}
-          fill={arrowShadowColor}
-          filter="drop-shadow(0 2px 4px rgba(0,0,0,0.2))"
-        />
-        <polygon
-          points={arrowPoints.map(p => p.join(',')).join(' ')}
-          fill={arrowColor}
-          opacity={0.95}
-        />
-      </motion.g>
+      {result === 'success' ? (
+        <motion.g
+          initial={animated ? { opacity: 0, scale: 0 } : false}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={animated ? { duration: 0.4, ease: 'backOut', delay: 0.5 } : { duration: 0 }}
+        >
+          <polygon
+            points={arrowPoints.map(p => p.join(',')).join(' ')}
+            fill={lineShadowColor}
+            filter="drop-shadow(0 2px 4px rgba(0,0,0,0.2))"
+          />
+          <polygon
+            points={arrowPoints.map(p => p.join(',')).join(' ')}
+            fill={lineColor}
+            opacity={0.95}
+          />
+        </motion.g>
+      ) : (
+        <motion.g
+          initial={animated ? { opacity: 0, scale: 0 } : false}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={animated ? { duration: 0.4, ease: 'backOut', delay: 0.5 } : { duration: 0 }}
+        >
+          <line
+            x1={crossLine1.x1}
+            y1={crossLine1.y1}
+            x2={crossLine1.x2}
+            y2={crossLine1.y2}
+            stroke={lineShadowColor}
+            strokeWidth={strokeWidth + 2}
+            strokeLinecap="round"
+          />
+          <line
+            x1={crossLine2.x1}
+            y1={crossLine2.y1}
+            x2={crossLine2.x2}
+            y2={crossLine2.y2}
+            stroke={lineShadowColor}
+            strokeWidth={strokeWidth + 2}
+            strokeLinecap="round"
+          />
+          <line
+            x1={crossLine1.x1}
+            y1={crossLine1.y1}
+            x2={crossLine1.x2}
+            y2={crossLine1.y2}
+            stroke={lineColor}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+          />
+          <line
+            x1={crossLine2.x1}
+            y1={crossLine2.y1}
+            x2={crossLine2.x2}
+            y2={crossLine2.y2}
+            stroke={lineColor}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+          />
+        </motion.g>
+      )}
 
       {/* Círculo en el origen con animación */}
       <motion.circle
         cx={x1}
         cy={y1}
         r={2}
-        fill={arrowColor}
+        fill={lineColor}
         opacity={0.7}
         initial={animated ? { opacity: 0, scale: 0 } : false}
         animate={{ 

@@ -7,13 +7,19 @@ interface NetworkPassPitchProps {
   teamId: string
   width?: number
   height?: number
+  isHomeTeam?: boolean
 }
 
-const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800, height = 600 }) => {
+const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800, height = 600, isHomeTeam = true }) => {
   const [tooltip, setTooltip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null)
   
   const containerRef = useRef<HTMLDivElement>(null)
   const cyRef = useRef<Core | null>(null)
+
+  // Definir colores según el equipo
+  const colors = isHomeTeam 
+    ? { primary: '#2196F3', secondary: '#60a5fa', dark: '#1e40af' }
+    : { primary: '#E53935', secondary: '#ef5350', dark: '#c62828' }
 
   // Obtener red de pases del store en tiempo real
   const network = usePassNetworkStore((state) => state.getNetwork(teamId))
@@ -85,7 +91,7 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
           selector: 'node',
           style: {
             'background-color': '#ffffff',
-            'border-color': '#1e40af',
+            'border-color': colors.dark,
             'border-width': 1.5,
             'width': (ele: cytoscape.NodeSingular) => {
               const passCount = ele.data('passCount')
@@ -98,7 +104,7 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
             'label': 'data(label)',
             'font-size': '9px',
             'font-weight': 'bold',
-            'color': '#1e40af',
+            'color': colors.dark,
             'text-valign': 'center',
             'text-halign': 'center'
           }
@@ -107,7 +113,7 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
           selector: 'node:selected',
           style: {
             'border-width': 3,
-            'border-color': '#60a5fa'
+            'border-color': colors.secondary
           }
         },
         {
@@ -117,8 +123,8 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
               const passCount = ele.data('passCount')
               return Math.sqrt(passCount / maxPassCount) * 5 + 0.3
             },
-            'line-color': '#60a5fa',
-            'target-arrow-color': '#60a5fa',
+            'line-color': colors.secondary,
+            'target-arrow-color': colors.secondary,
             'target-arrow-shape': 'triangle',
             'curve-style': 'unbundled-bezier',
             'control-point-distances': 15,
@@ -133,8 +139,8 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
         {
           selector: 'edge:selected',
           style: {
-            'line-color': '#3b82f6',
-            'target-arrow-color': '#3b82f6',
+            'line-color': colors.primary,
+            'target-arrow-color': colors.primary,
             'width': (ele: cytoscape.EdgeSingular) => {
               const passCount = ele.data('passCount')
               return Math.sqrt(passCount / maxPassCount) * 3 + 2
@@ -189,7 +195,7 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
             <div className="text-slate-200 text-xs font-semibold whitespace-nowrap">
               Jugador {nodeData.id}
             </div>
-            <div className="text-blue-400 text-xs whitespace-nowrap">
+            <div style={{ color: colors.primary }} className="text-xs whitespace-nowrap">
               Pases: {nodeData.passCount}
             </div>
           </div>
@@ -225,7 +231,7 @@ const NetworkPassPitch: React.FC<NetworkPassPitchProps> = ({ teamId, width = 800
             <div className="text-slate-200 text-xs font-semibold whitespace-nowrap">
               {edgeData.source} → {edgeData.target}
             </div>
-            <div className="text-blue-400 text-xs whitespace-nowrap">
+            <div style={{ color: colors.primary }} className="text-xs whitespace-nowrap">
               Conexiones: {edgeData.passCount}
             </div>
           </div>

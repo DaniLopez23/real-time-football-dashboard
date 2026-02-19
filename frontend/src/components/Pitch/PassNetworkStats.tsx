@@ -83,23 +83,6 @@ const PassNetworkStats: React.FC<PassNetworkStatsProps> = ({ teamId }) => {
         )}
       </div>
 
-      {/* Estadísticas generales */}
-      <div className="border-t border-slate-700 pt-2 mt-auto">
-        <div className="grid grid-cols-3 gap-1">
-          <div className="bg-slate-700 bg-opacity-50 rounded p-1 text-center">
-            <div className="text-slate-400">Jug.</div>
-            <div className="text-slate-50 font-bold">{network.statistics.total_players}</div>
-          </div>
-          <div className="bg-slate-700 bg-opacity-50 rounded p-1 text-center">
-            <div className="text-slate-400">Con.</div>
-            <div className="text-slate-50 font-bold">{network.statistics.total_connections}</div>
-          </div>
-          <div className="bg-slate-700 bg-opacity-50 rounded p-1 text-center">
-            <div className="text-slate-400">Pas.</div>
-            <div className="text-slate-50 font-bold">{network.statistics.total_passes}</div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
