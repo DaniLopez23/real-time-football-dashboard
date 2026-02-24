@@ -81,51 +81,53 @@ const DashboardLayout: React.FC = () => {
                 Red de pases - {selectedGame?.home_team.team_name}
               </div>
 
-              {/* Fila 2: 3 columnas */}
-              <div className="grid grid-cols-1 gap-4 flex-1 min-h-0 lg:grid-cols-3">
+              {/* Fila 2: 3 columnas responsivas (stats | pitch | filtros).
+                  - En md+ usan columnas con minmax para permitir que stats y filtros se encojan.
+                  - En <md los filtros colapsan a un icono que abre un popover. */}
+              <div className="grid grid-cols-1 md:grid-cols-[minmax(48px,1fr)_minmax(240px,3fr)_minmax(48px,160px)] gap-4 md:gap-6 flex-1 min-h-0 items-start">
 
-                {/* Columna 1: Estadísticas */}
-                <div className="overflow-y-auto w-full max-w-[200px]">
+                {/* Columna 1: Estadísticas (pueden crecer/encoger; no cortar verticalmente) */}
+                <div className="w-full">
                   <PassNetworkStats teamId="1564" />
                 </div>
 
-                {/* Columna 2: Red de pases */}
-                <div className="flex items-center justify-center min-h-0">
-                  <NetworkPassPitch
-                    teamId="1564"
-                    width={300}
-                    height={200}
-                    isHomeTeam={true}
-                  />
+                {/* Columna 2: Red de pases (flexible, ocupa espacio restante) */}
+                <div className="flex items-center justify-center w-full">
+                  <div className="w-full max-w-[320px] md:max-w-none flex justify-center">
+                    <NetworkPassPitch teamId="1564" width={300} height={200} isHomeTeam={true} />
+                  </div>
                 </div>
 
-                {/* Columna 3: Filtros */}
-                <div className="flex flex-col items-end min-h-0 min-w-0">
-                  <div className="hidden xl:block w-full max-w-[240px]">
-                    <PassNetworkFilters
-                      maxMinute={PASS_NETWORK_MAX_MINUTE}
-                      filters={homePassFilters}
-                      onFiltersChange={setHomePassFilters}
-                    />
+                {/* Columna 3: Filtros (full en md+, icon-popover en sm) */}
+                <div className="flex items-start justify-end w-full">
+                  <div className="hidden md:block w-full max-w-[260px]">
+                    <PassNetworkFilters maxMinute={PASS_NETWORK_MAX_MINUTE} filters={homePassFilters} onFiltersChange={setHomePassFilters} />
                   </div>
-                  <div className="xl:hidden">
+
+                  <div className="md:hidden flex items-center">
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 gap-2 px-2 bg-slate-700/50 hover:bg-slate-600/50 border-slate-600 text-slate-200"
-                        >
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-1 bg-slate-700/50 hover:bg-slate-600/50 border-slate-600 text-slate-200">
                           <SlidersHorizontal className="h-4 w-4 text-slate-300" />
-                          <span className="text-xs font-medium">Filtros</span>
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent align="end" className="w-72">
-                        <PassNetworkFilters
-                          maxMinute={PASS_NETWORK_MAX_MINUTE}
-                          filters={homePassFilters}
-                          onFiltersChange={setHomePassFilters}
-                        />
+                      <PopoverContent align="center" className="w-72">
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2">Estadísticas</h3>
+                            <PassNetworkStats teamId="1564" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2">Red de pases</h3>
+                            <div className="flex justify-center">
+                              <NetworkPassPitch teamId="1564" width={300} height={220} isHomeTeam={true} />
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2">Filtros</h3>
+                            <PassNetworkFilters maxMinute={PASS_NETWORK_MAX_MINUTE} filters={homePassFilters} onFiltersChange={setHomePassFilters} />
+                          </div>
+                        </div>
                       </PopoverContent>
                     </Popover>
                   </div>
@@ -140,57 +142,56 @@ const DashboardLayout: React.FC = () => {
                 Red de pases - {selectedGame?.away_team.team_name}
               </div>
 
-              {/* Fila 2: 3 columnas */}
-              <div className="grid grid-cols-1 gap-4 flex-1 min-h-0 lg:grid-cols-3"> 
+              {/* Fila 2: 3 columnas responsivas (stats | pitch | filtros) - visitante */}
+              <div className="grid grid-cols-1 md:grid-cols-[minmax(48px,1fr)_minmax(240px,3fr)_minmax(48px,160px)] gap-4 md:gap-6 flex-1 min-h-0 items-start"> 
 
-                {/* Columna 1: Estadísticas */}
-                <div className="overflow-y-auto w-full max-w-[200px]">
+                {/* Columna 1: Estadísticas (pueden crecer/encoger; no cortar verticalmente) */}
+                <div className="w-full">
                   <PassNetworkStats teamId="184" />
                 </div>
 
-                {/* Columna 2: Red de pases */}
-                <div className="flex items-center justify-center min-h-0">
-                  <NetworkPassPitch
-                    teamId="184"
-                    width={300}
-                    height={200}
-                    isHomeTeam={false}
-                  />
+                {/* Columna 2: Red de pases (flexible) */}
+                <div className="flex items-center justify-center w-full">
+                  <div className="w-full max-w-[320px] md:max-w-none flex justify-center">
+                    <NetworkPassPitch teamId="184" width={300} height={200} isHomeTeam={false} />
+                  </div>
                 </div>
 
-                {/* Columna 3: Filtros */}
-                <div className="flex flex-col items-end min-h-0 min-w-0">
-                  <div className="hidden xl:block w-full max-w-[240px]">
-                    <PassNetworkFilters
-                      maxMinute={PASS_NETWORK_MAX_MINUTE}
-                      filters={awayPassFilters}
-                      onFiltersChange={setAwayPassFilters}
-                    />
+                {/* Columna 3: Filtros (full en md+, icon-popover en sm) */}
+                <div className="flex items-start justify-end w-full">
+                  <div className="hidden md:block w-full max-w-[260px]">
+                    <PassNetworkFilters maxMinute={PASS_NETWORK_MAX_MINUTE} filters={awayPassFilters} onFiltersChange={setAwayPassFilters} />
                   </div>
-                  <div className="xl:hidden">
+
+                  <div className="md:hidden flex items-center">
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 gap-2 px-2 bg-slate-700/50 hover:bg-slate-600/50 border-slate-600 text-slate-200"
-                        >
+                        <Button variant="outline" size="sm" className="h-8 w-8 p-1 bg-slate-700/50 hover:bg-slate-600/50 border-slate-600 text-slate-200">
                           <SlidersHorizontal className="h-4 w-4 text-slate-300" />
-                          <span className="text-xs font-medium">Filtros</span>
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent align="end" className="w-72">
-                        <PassNetworkFilters
-                          maxMinute={PASS_NETWORK_MAX_MINUTE}
-                          filters={awayPassFilters}
-                          onFiltersChange={setAwayPassFilters}
-                        />
+                      <PopoverContent align="center" className="w-72">
+                        <div className="space-y-4">
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2">Estadísticas</h3>
+                            <PassNetworkStats teamId="184" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2">Red de pases</h3>
+                            <div className="flex justify-center">
+                              <NetworkPassPitch teamId="184" width={300} height={220} isHomeTeam={false} />
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2">Filtros</h3>
+                            <PassNetworkFilters maxMinute={PASS_NETWORK_MAX_MINUTE} filters={awayPassFilters} onFiltersChange={setAwayPassFilters} />
+                          </div>
+                        </div>
                       </PopoverContent>
                     </Popover>
                   </div>
                 </div>
 
-                
               </div>
             </div>
           </div>
