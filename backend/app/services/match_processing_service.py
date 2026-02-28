@@ -64,6 +64,8 @@ class MatchProcessingService:
                 "timestamp": parsed.get("timestamp", ""),
                 "game": game_snapshot,
             })
+            
+            logger.info(f"New game detected: {game_id}, initializing state and computing initial pass networks")
 
             # Build initial pass networks using ALL pass events
             initial_pass_events = [
@@ -96,6 +98,7 @@ class MatchProcessingService:
                 "game": game_snapshot,
             })
             match_state.game = game_snapshot
+            logger.info(f"Game update detected for {game_id}, updating game state")
 
         # Index current and existing events
         current_events_by_key = self._index_events(enriched_events)
@@ -151,7 +154,8 @@ class MatchProcessingService:
                             "edges": edges,
                             "statistics": match_state.pass_networks[team_id].get_statistics() if team_id in match_state.pass_networks else {},
                         })
-
+        logger.info(f"Processed match data for game {game_id}: {len(new_events)} new events, {len(updated_events)} updated events, {len(updates)} total updates generated")
+        
         return updates
 
 

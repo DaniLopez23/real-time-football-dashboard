@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 # Base path and simulated file (kept for convenience)
 BASE_PATH = Path(__file__).parent.parent
-SIMULATED_DATA_FILE = BASE_PATH.parent.parent / "simulated-real-time-data" / "180226-00.xml"
+SIMULATED_DATA_FILE = BASE_PATH.parent.parent / "simulated-real-time-data" / "280226-00.xml"
 
 
 class XmlReaderService:

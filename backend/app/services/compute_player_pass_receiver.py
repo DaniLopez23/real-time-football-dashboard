@@ -60,8 +60,8 @@ def add_pass_receiver_info(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]
                 passes_updated += 1
     
     if passes_updated > 0:
-        logger.debug(f"✓ Updated {passes_updated} pass events with receiver info (total with receiver: {passes_with_receiver}/{pass_count})")
-    
+        # logger.debug(f"✓ Updated {passes_updated} pass events with receiver info (total with receiver: {passes_with_receiver}/{pass_count})")
+        pass
     return events
 
 
