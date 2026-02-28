@@ -3,7 +3,7 @@ from pathlib import Path
 import asyncio
 import xml.etree.ElementTree as ET
 
-from app.services.xml_reader import parse_xml_raw_file
+from app.services.xml_reader_service import parse_xml_raw_file
 # Logger
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ BASE_PATH = Path(__file__).parent.parent
 EVENT_MAPPER = None
 QUALIFIER_MAPPER = None
 
-SIMULATED_DATA_FILE = BASE_PATH.parent.parent / "simulated-real-time-data" / "180226-00.xml"
+SIMULATED_DATA_FILE = BASE_PATH.parent.parent / "simulated-real-time-data" / "280226-00.xml"
     
 # Cosntants for adding time to poll intervals
 NO_FILE_FOUND_INTERVAL = 10

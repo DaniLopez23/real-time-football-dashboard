@@ -65,7 +65,7 @@ const DashboardLayout: React.FC = () => {
           </div>
         </div>
 
-        {/* Fila 2: 2 columnas - proporción adaptable - 60% de altura */}
+        {/* Fila 2: 2 columnas - proporción adaptable */}
         <div className="grid grid-cols-[auto_1fr] gap-2 min-h-[55vh]">
           {/* Columna 1 - Se ajusta al contenido */}
           <div className="bg-slate-900 rounded-lg border border-slate-800 p-2 flex flex-col">
@@ -81,9 +81,7 @@ const DashboardLayout: React.FC = () => {
                 Red de pases - {selectedGame?.home_team.team_name}
               </div>
 
-              {/* Fila 2: 3 columnas responsivas (stats | pitch | filtros).
-                  - En md+ usan columnas con minmax para permitir que stats y filtros se encojan.
-                  - En <md los filtros colapsan a un icono que abre un popover. */}
+              {/* Fila 2: 3 columnas responsivas (stats | pitch | filtros)*/}
               <div className="grid grid-cols-1 md:grid-cols-[minmax(48px,1fr)_minmax(240px,3fr)_minmax(48px,160px)] gap-4 md:gap-6 flex-1 min-h-0 items-start">
 
                 {/* Columna 1: Estadísticas (pueden crecer/encoger; no cortar verticalmente) */}

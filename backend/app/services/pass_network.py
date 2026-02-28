@@ -362,8 +362,8 @@ class PassNetwork:
             self.processed_event_ids.add(event_id)
         
         if passes_processed > 0 or passes_skipped > 0:
-            logger.debug(f"Procesados {passes_processed} eventos de pase nuevos, {passes_skipped} ya existentes")
-        
+            # logger.debug(f"Procesados {passes_processed} eventos de pase nuevos, {passes_skipped} ya existentes")
+            pass
         # Retornar solo los cambios
         return self.get_changed_nodes(), self.get_changed_edges()
 
@@ -437,8 +437,6 @@ def build_pass_network_from_events(
             network.add_player(from_player_id, player_name, current_team_id)
             network.add_pass(from_player_id, to_player_id, x, y, end_x, end_y)
     
-    logger.info(f"Pases procesados: {passes_processed}, con receptor: {passes_with_receiver}")
-    logger.info(f"Red construida: {len(network.players)} jugadores, {len(network.edges)} conexiones")
     
     # Aplicar filtro de pases mínimos entre jugadores si es necesario
     if min_pass_count > 0:

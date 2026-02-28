@@ -5,7 +5,7 @@ Maneja las operaciones relacionadas con partidos (games).
 """
 
 from typing import Any, Dict, List
-from app.services.xml_reader import read_full_xml_async
+from app.services.xml_reader_service import read_full_xml_async
 import logging
 
 
