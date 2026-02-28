@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import uvicorn
 from app.core.logging import setup_logging
 from app.routes import index, events, games, websocket
-from app.services.xml_reader import watch_simulated_real_time_data
+from app.workers.watcher_worker import watch_simulated_real_time_data
 from app.websockets.connection_manager import connection_manager
 from app.websockets.event_broadcaster import broadcast_message
 

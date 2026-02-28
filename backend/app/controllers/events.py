@@ -5,7 +5,7 @@ Maneja las operaciones relacionadas con eventos del partido.
 """
 
 from typing import Any, Dict, List
-from app.services.xml_reader import read_full_xml_async
+from backend.app.services.xml_reader_service import read_full_xml_async
 from app.services.pass_network import build_pass_network_from_events
 import logging
 
